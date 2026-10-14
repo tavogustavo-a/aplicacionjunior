@@ -186,6 +186,10 @@ body {
   margin-top: 0.5rem;
 }
 
+.login-panel label {
+  text-align: center;
+}
+
 .panel {
   background: var(--paper);
   border: 1px solid var(--line);
