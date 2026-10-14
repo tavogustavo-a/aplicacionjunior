@@ -74,24 +74,12 @@
           </div>
         </form>
         <div class="actions sesion-acciones actions-center">
-          <button type="submit" form="form-entrar-effi" class="btn primary">Entrar y guardar</button>
-        </div>
-
-        <form method="post" action="{{ url_for('guardar_config') }}" class="stack" id="form-guardar-sesion">
-          {% include "_csrf.html" %}
-          <input type="hidden" name="effi_base_url" value="{{ base_url }}" />
-
-          <textarea id="effi_session" name="effi_session" rows="3" placeholder="Pega el cURL completo o solo ci_session" aria-label="ci_session">{{ cookie_value }}</textarea>
-          <p id="sesion-limpia-msg" class="clean-msg" hidden></p>
-        </form>
-
-        <div class="actions sesion-acciones actions-center">
-          <button type="submit" form="form-guardar-sesion" class="btn primary">Guardar sesión</button>
+          <button type="submit" form="form-entrar-effi" class="btn primary">Guardar sesión</button>
           <button
             type="submit"
-            form="form-guardar-sesion"
+            form="form-entrar-effi"
             formaction="{{ url_for('probar_conexion') }}"
-            class="btn ghost"
+            class="btn probar"
           >
             Probar conexión
           </button>
@@ -388,7 +376,6 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='sesion_limpia.js') }}"></script>
   <script>
     (function () {
       var cookieOk = {{ "true" if cookie_ok else "false" }};
