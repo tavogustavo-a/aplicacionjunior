@@ -346,12 +346,12 @@ code {
 }
 .inline-form { margin-top: 0.8rem; }
 
-.cookie-actions {
+.sesion-acciones {
   margin-top: 0.85rem;
   align-items: center;
 }
 
-.cookie-actions form {
+.sesion-acciones form {
   margin: 0;
   display: inline-flex;
 }

@@ -1,6 +1,6 @@
 (function () {
   const input = document.getElementById("effi_session");
-  const msg = document.getElementById("cookie-clean-msg");
+  const msg = document.getElementById("sesion-limpia-msg");
   if (!input) return;
 
   function extractCiSession(raw) {
@@ -50,7 +50,7 @@
     cleanField(true);
   });
 
-  const form = document.getElementById("form-guardar-cookie");
+  const form = document.getElementById("form-guardar-sesion");
   if (form) {
     form.addEventListener("submit", function () {
       cleanField(false);

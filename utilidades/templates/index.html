@@ -34,11 +34,11 @@
       </div>
     {% endif %}
 
-    <section class="panel accordion-panel" id="panel-cookie">
+    <section class="panel accordion-panel" id="panel-sesion-effi">
       <button
         type="button"
         class="accordion-trigger accordion-trigger-center"
-        id="toggle-cookie"
+        id="toggle-sesion-effi"
         aria-expanded="false"
       >
         <span>Sesión EFFI</span>
@@ -72,28 +72,28 @@
             />
           </label>
           <p class="hint">
-            Se guarda en este equipo. Si la cookie caduca o falla, entra sola otra vez.
+            Se guarda en este equipo. Si la sesión caduca o falla, entra sola otra vez.
             Si la contraseña es incorrecta, lo avisa y no sigue intentando.
           </p>
         </form>
-        <div class="actions cookie-actions actions-center">
+        <div class="actions sesion-acciones actions-center">
           <button type="submit" form="form-entrar-effi" class="btn primary">Entrar y guardar</button>
         </div>
 
-        <form method="post" action="{{ url_for('guardar_config') }}" class="stack" id="form-guardar-cookie">
+        <form method="post" action="{{ url_for('guardar_config') }}" class="stack" id="form-guardar-sesion">
           {% include "_csrf.html" %}
           <input type="hidden" name="effi_base_url" value="{{ base_url }}" />
 
-          <p class="hint">O pega la cookie a mano.</p>
+          <p class="hint">O pega la sesión a mano.</p>
           <textarea id="effi_session" name="effi_session" rows="3" placeholder="Pega el cURL completo o solo ci_session" aria-label="ci_session">{{ cookie_value }}</textarea>
-          <p id="cookie-clean-msg" class="clean-msg" hidden></p>
+          <p id="sesion-limpia-msg" class="clean-msg" hidden></p>
 
-          <div class="accordion-panel accordion-nested" id="panel-ayuda-cookie">
-            <button type="button" class="accordion-trigger accordion-trigger-sm accordion-trigger-center" id="toggle-ayuda-cookie" aria-expanded="false">
+          <div class="accordion-panel accordion-nested" id="panel-ayuda-sesion">
+            <button type="button" class="accordion-trigger accordion-trigger-sm accordion-trigger-center" id="toggle-ayuda-sesion" aria-expanded="false">
               <span>Cómo obtenerla en Chrome</span>
               <span class="accordion-chevron" aria-hidden="true">▾</span>
             </button>
-            <div class="accordion-body" id="ayuda-cookie-body" hidden>
+            <div class="accordion-body" id="ayuda-sesion-body" hidden>
               <ol class="hint-steps">
                 <li>Entra a EFFI ya logueado.</li>
                 <li>Pulsa <code>F12</code> → pestaña <strong>Network</strong>.</li>
@@ -108,11 +108,11 @@
           </div>
         </form>
 
-        <div class="actions cookie-actions actions-center">
-          <button type="submit" form="form-guardar-cookie" class="btn primary">Guardar cookie</button>
+        <div class="actions sesion-acciones actions-center">
+          <button type="submit" form="form-guardar-sesion" class="btn primary">Guardar sesión</button>
           <button
             type="submit"
-            form="form-guardar-cookie"
+            form="form-guardar-sesion"
             formaction="{{ url_for('probar_conexion') }}"
             class="btn ghost"
           >
@@ -426,7 +426,7 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='cookie_clean.js') }}"></script>
+  <script src="{{ url_for('static', filename='sesion_limpia.js') }}"></script>
   <script>
     (function () {
       var cookieOk = {{ "true" if cookie_ok else "false" }};
@@ -475,13 +475,13 @@
           apply(!panel.classList.contains("is-open"));
         });
       }
-      bindAccordion("panel-cookie", "toggle-cookie", {{ "true" if not cookie_ok else "false" }});
+      bindAccordion("panel-sesion-effi", "toggle-sesion-effi", {{ "true" if not cookie_ok else "false" }});
       bindAccordion(
         "panel-clientes",
         "toggle-clientes",
         {{ "true" if resultados is not none else "false" }}
       );
-      bindAccordion("panel-ayuda-cookie", "toggle-ayuda-cookie", false);
+      bindAccordion("panel-ayuda-sesion", "toggle-ayuda-sesion", false);
 
       var modal = document.getElementById("modal-ventas");
       var form = document.getElementById("form-ventas");

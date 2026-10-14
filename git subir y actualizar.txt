@@ -23,7 +23,6 @@ git push origin main
 --------------------------------------------------------
 --------------------------------------------------------
 ## Actualización en el servidor
-## No hay backups ni correo de Gmail: solo se actualiza el código y se reinicia.
 cd /home/junior/aplicacionjunior
 source venv/bin/activate
 git pull origin main
