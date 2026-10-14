@@ -22,12 +22,20 @@
         {% endif %}
         <form method="post" action="{{ url_for('logout') }}" class="nav-menu-form">
           {% include "_csrf.html" %}
-          <button type="submit" class="nav-menu-item nav-menu-exit">
-            {% if usuario %}Salir ({{ usuario }}){% else %}Salir{% endif %}
-          </button>
+          <button type="submit" class="nav-menu-item nav-menu-exit">Cerrar sesión</button>
         </form>
       </div>
     </details>
   </nav>
-  <p class="brand">aplicacionjunior</p>
 </header>
+<script>
+  (function () {
+    var menu = document.querySelector(".nav-menu-details");
+    if (!menu) return;
+    document.addEventListener("click", function (e) {
+      if (!menu.open) return;
+      if (menu.contains(e.target)) return;
+      menu.open = false;
+    });
+  })();
+</script>

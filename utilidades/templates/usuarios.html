@@ -27,27 +27,29 @@
     {% endwith %}
 
     <section class="panel">
-      <div class="panel-head">
-        <h2>Crear usuario</h2>
-      </div>
       <form method="post" action="{{ url_for('usuarios_crear') }}" class="stack">
         {% include "_csrf.html" %}
-        <label>
-          Usuario
-          <input type="text" name="username" required autocomplete="off" maxlength="80" />
-        </label>
-        <label>
-          Contraseña
-          <input type="password" name="password" required autocomplete="new-password" maxlength="200" />
-        </label>
-        <div class="actions">
-          <button type="submit" class="btn primary">Crear usuario</button>
+        <div class="crear-usuario-row">
+          <label>
+            Usuario
+            <input type="text" name="username" required autocomplete="off" maxlength="80" />
+          </label>
+          <label>
+            Contraseña
+            <input type="password" name="password" required autocomplete="new-password" maxlength="200" />
+          </label>
+        </div>
+        <div class="actions actions-center">
+          <button type="submit" class="btn primary btn-ejecutar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM6 10V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Crear usuario</span>
+          </button>
         </div>
       </form>
     </section>
 
     <section class="panel">
-      <div class="panel-head">
+      <div class="panel-head panel-head-center">
         <h2>Usuarios en base de datos</h2>
       </div>
 
@@ -76,28 +78,38 @@
                   <span class="pill off">OFF</span>
                 {% endif %}
               </td>
-              <td class="actions-cell">
+              <td class="actions-cell imap-actions">
                 <button
                   type="button"
-                  class="btn ghost btn-sm btn-edit-user"
+                  class="btn-icon btn-edit btn-edit-user"
+                  title="Editar"
+                  aria-label="Editar"
                   data-id="{{ u.id }}"
                   data-username="{{ u.username }}"
                   data-is-admin="{{ 1 if u.username == admin_name else 0 }}"
                   data-action="{{ url_for('usuarios_editar', uid=u.id) }}"
                 >
-                  Editar
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.33H5v-.92l9.06-9.06.92.92L5.92 19.58zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
                 {% if u.username != admin_name %}
                 <form method="post" action="{{ url_for('usuarios_toggle', uid=u.id) }}">
                   {% include "_csrf.html" %}
-                  <button type="submit" class="btn ghost btn-sm">
-                    {% if u.enabled %}Apagar{% else %}Encender{% endif %}
+                  {% if u.enabled %}
+                  <button type="submit" class="btn-icon btn-off" title="Apagar" aria-label="Apagar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3h-2v10h2V3zm4.83 2.17-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7a6.92 6.92 0 0 1 2.59-5.41L6.17 5.17A8.96 8.96 0 0 0 3 12a9 9 0 1 0 18 0 8.96 8.96 0 0 0-3.17-6.83z"/></svg>
                   </button>
+                  {% else %}
+                  <button type="submit" class="btn-icon btn-test" title="Encender" aria-label="Encender">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3h-2v10h2V3zm4.83 2.17-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7a6.92 6.92 0 0 1 2.59-5.41L6.17 5.17A8.96 8.96 0 0 0 3 12a9 9 0 1 0 18 0 8.96 8.96 0 0 0-3.17-6.83z"/></svg>
+                  </button>
+                  {% endif %}
                 </form>
                 <form method="post" action="{{ url_for('usuarios_eliminar', uid=u.id) }}"
                       onsubmit="return confirm('¿Eliminar usuario {{ u.username }}?');">
                   {% include "_csrf.html" %}
-                  <button type="submit" class="btn danger btn-sm">Eliminar</button>
+                  <button type="submit" class="btn-icon btn-delete" title="Eliminar" aria-label="Eliminar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3.5-8h1v7h-1zm3 0h1v7h-1zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  </button>
                 </form>
                 {% endif %}
               </td>
@@ -113,7 +125,9 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
       <div class="panel-head">
         <h2 id="editUserTitle">Editar usuario</h2>
-        <button type="button" class="btn ghost btn-sm" id="editUserClose">Cerrar</button>
+        <button type="button" class="btn-close-x" id="editUserClose" title="Cerrar" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.29 10.59 10.6l6.3-6.3z"/></svg>
+        </button>
       </div>
 
       <form method="post" class="stack" id="editUserForm">

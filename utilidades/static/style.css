@@ -156,7 +156,12 @@ body {
 }
 
 .nav-menu-exit {
-  color: var(--muted);
+  color: #dc2626;
+}
+
+.nav-menu-exit:hover {
+  color: #fff;
+  background: #dc2626;
 }
 
 .brand {
@@ -616,10 +621,6 @@ body.modal-open {
   overflow: hidden;
 }
 
-.ventas-hint {
-  margin-top: 0;
-}
-
 .sucursal-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -687,6 +688,12 @@ body.modal-open {
 
 .actions-center {
   justify-content: center;
+}
+
+.crear-usuario-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
 }
 
 .panel-head-center {
@@ -907,6 +914,7 @@ tr.detalle-sucursal-total td {
   color: #dc2626;
   background: #fef2f2;
   border-color: #fecaca;
+  white-space: nowrap;
 }
 
 .btn.ghost.btn-eliminar-todos:hover:not(:disabled) {
@@ -1041,6 +1049,18 @@ tr.detalle-sucursal-total td {
   color: #fff;
   background: #16a34a;
   border-color: #16a34a;
+}
+
+.btn-off {
+  color: #c2410c;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.btn-off:hover:not(:disabled) {
+  color: #fff;
+  background: #ea580c;
+  border-color: #ea580c;
 }
 
 .btn-delete {
@@ -1247,6 +1267,24 @@ tr.row-alerta-cuenta td {
   border-top: 1px solid var(--line);
 }
 
+.imap-saved {
+  margin-top: 1.15rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.imap-saved h3 {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 550;
+}
+
+.imap-saved > .hint {
+  text-align: center;
+  margin: 0;
+}
+
 .accordion-trigger {
   width: 100%;
   display: flex;
@@ -1315,6 +1353,14 @@ tr.row-alerta-cuenta td {
 
 @media (max-width: 700px) {
   .panel-head { flex-direction: column; align-items: flex-start; }
+  .panel-head.panel-head-center { align-items: center; }
+  #panel-registros > .panel-head,
+  #panel-trailero-registros > .panel-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
   .shell { margin-top: 1.2rem; }
   .sucursal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .registro-item {
@@ -1342,4 +1388,5 @@ tr.row-alerta-cuenta td {
 @media (max-width: 420px) {
   .sucursal-grid { grid-template-columns: 1fr; }
   .calendar-fields { grid-template-columns: 1fr; }
+  .crear-usuario-row { grid-template-columns: 1fr; }
 }

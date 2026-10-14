@@ -53,77 +53,67 @@
             <button type="submit" class="btn primary">Crear configuración</button>
           </div>
         </form>
-      </div>
-    </section>
 
-    <section class="panel accordion-panel" id="panel-imap-lista">
-      <button
-        type="button"
-        class="accordion-trigger accordion-trigger-center"
-        id="toggle-imap-lista"
-        aria-expanded="false"
-      >
-        <span>Configuraciones IMAP</span>
-        <span class="accordion-chevron" aria-hidden="true">▾</span>
-      </button>
-      <div class="accordion-body" hidden>
-        {% if not imap_configs %}
-          <p class="hint" style="text-align:center">Aún no hay configuraciones. Crea la primera arriba.</p>
-        {% else %}
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Servidor</th>
-                <th>Carpeta</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for c in imap_configs %}
-              <tr>
-                <td>{{ c.usuario }}</td>
-                <td class="mono-cell">{{ c.host }}:{{ c.port }}</td>
-                <td class="mono-cell">{{ c.carpeta or "INBOX" }}</td>
-                <td class="actions-cell imap-actions">
-                  <button
-                    type="button"
-                    class="btn-icon btn-edit-imap"
-                    title="Editar"
-                    aria-label="Editar"
-                    data-id="{{ c.id }}"
-                    data-host="{{ c.host }}"
-                    data-port="{{ c.port }}"
-                    data-usuario="{{ c.usuario }}"
-                    data-carpeta="{{ c.carpeta or 'INBOX' }}"
-                    data-action="{{ url_for('imap_editar', cid=c.id) }}"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.33H5v-.92l9.06-9.06.92.92L5.92 19.58zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                  </button>
-                  <form method="post" action="{{ url_for('imap_probar', cid=c.id) }}">
-                    {% include "_csrf.html" %}
-                    <button type="submit" class="btn-icon btn-test" title="Probar conexión" aria-label="Probar conexión">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 9V7.5A1.5 1.5 0 0 0 15 6h-1V3h-1.5v3H11.5V3H10v3H9a1.5 1.5 0 0 0-1.5 1.5V9H6v3a6 6 0 0 0 5.25 5.95V21h1.5v-3.05A6 6 0 0 0 18 12V9h-1.5zM8.5 9V7.5h7V9h-7zm8 3a4.5 4.5 0 0 1-9 0v-1.5h9V12z"/></svg>
+        <div class="imap-saved">
+          <h3>Configuraciones IMAP</h3>
+          {% if not imap_configs %}
+            <p class="hint">Aún no hay configuraciones.</p>
+          {% else %}
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Servidor</th>
+                  <th>Carpeta</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in imap_configs %}
+                <tr>
+                  <td>{{ c.usuario }}</td>
+                  <td class="mono-cell">{{ c.host }}:{{ c.port }}</td>
+                  <td class="mono-cell">{{ c.carpeta or "INBOX" }}</td>
+                  <td class="actions-cell imap-actions">
+                    <button
+                      type="button"
+                      class="btn-icon btn-edit-imap"
+                      title="Editar"
+                      aria-label="Editar"
+                      data-id="{{ c.id }}"
+                      data-host="{{ c.host }}"
+                      data-port="{{ c.port }}"
+                      data-usuario="{{ c.usuario }}"
+                      data-carpeta="{{ c.carpeta or 'INBOX' }}"
+                      data-action="{{ url_for('imap_editar', cid=c.id) }}"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.33H5v-.92l9.06-9.06.92.92L5.92 19.58zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                     </button>
-                  </form>
-                  <form
-                    method="post"
-                    action="{{ url_for('imap_eliminar', cid=c.id) }}"
-                    onsubmit="return confirm('¿Eliminar la configuración {{ c.usuario }}?');"
-                  >
-                    {% include "_csrf.html" %}
-                    <button type="submit" class="btn-icon btn-delete" title="Eliminar" aria-label="Eliminar">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3.5-8h1v7h-1zm3 0h1v7h-1zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                    <form method="post" action="{{ url_for('imap_probar', cid=c.id) }}">
+                      {% include "_csrf.html" %}
+                      <button type="submit" class="btn-icon btn-test" title="Probar conexión" aria-label="Probar conexión">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 9V7.5A1.5 1.5 0 0 0 15 6h-1V3h-1.5v3H11.5V3H10v3H9a1.5 1.5 0 0 0-1.5 1.5V9H6v3a6 6 0 0 0 5.25 5.95V21h1.5v-3.05A6 6 0 0 0 18 12V9h-1.5zM8.5 9V7.5h7V9h-7zm8 3a4.5 4.5 0 0 1-9 0v-1.5h9V12z"/></svg>
+                      </button>
+                    </form>
+                    <form
+                      method="post"
+                      action="{{ url_for('imap_eliminar', cid=c.id) }}"
+                      onsubmit="return confirm('¿Eliminar la configuración {{ c.usuario }}?');"
+                    >
+                      {% include "_csrf.html" %}
+                      <button type="submit" class="btn-icon btn-delete" title="Eliminar" aria-label="Eliminar">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3.5-8h1v7h-1zm3 0h1v7h-1zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
       </div>
     </section>
 
@@ -304,16 +294,7 @@
           apply(!panel.classList.contains("is-open"));
         });
       }
-      bindAccordion(
-        "panel-imap-nueva",
-        "toggle-imap-nueva",
-        {{ "true" if not imap_configs else "false" }}
-      );
-      bindAccordion(
-        "panel-imap-lista",
-        "toggle-imap-lista",
-        {{ "true" if imap_configs else "false" }}
-      );
+      bindAccordion("panel-imap-nueva", "toggle-imap-nueva", true);
 
       var modal = document.getElementById("modal-imap-edit");
       var form = document.getElementById("form-imap-edit");
@@ -868,11 +849,10 @@
                 n +
                 " tanqueo(s) · " +
                 money(r.total_general);
-              var sub =
-                (r.imap_usuario || "") +
-                (r.pdfs_error ? " · " + r.pdfs_error + " error(es)" : "") +
-                (r.created_at ? " · " + fechaGuardado(r.created_at) : "") +
-                (r.usuario ? " · " + r.usuario : "");
+              var partes = [];
+              if (r.pdfs_error) partes.push(r.pdfs_error + " error(es)");
+              if (r.created_at) partes.push(fechaGuardado(r.created_at));
+              var sub = partes.join(" · ");
               li.innerHTML =
                 '<div class="registro-main">' +
                 '<div class="registro-fechas">' + fechasHtml(r.desde, r.hasta) + "</div>" +

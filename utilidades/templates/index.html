@@ -218,9 +218,6 @@
       <div class="panel-head">
         <h2>Modo ventas</h2>
       </div>
-      <p class="hint ventas-hint">
-        Elige una sucursal o <strong>TODOS</strong>. Se abre el calendario para sumar facturas por medio de pago.
-      </p>
 
       <div class="sucursal-grid" id="sucursal-grid">
         {% for s in sucursales %}
@@ -939,10 +936,6 @@
                   " factura(s) · " +
                   money(r.total_general) +
                   "</span>" +
-                  '<span class="registro-when">' +
-                  fechaCorta(r.created_at) +
-                  (r.usuario ? " · " + r.usuario : "") +
-                  "</span>" +
                 "</div>" +
                 '<div class="registro-actions">' +
                   '<label class="registro-export-label">' +
@@ -952,7 +945,7 @@
                       '" name="registro_export_' +
                       r.id +
                       '" aria-label="Descargar registro">' +
-                      '<option value="">Descargar…</option>' +
+                      '<option value="">Descargar</option>' +
                       '<option value="xlsx">Excel</option>' +
                       '<option value="txt">Bloc de notas</option>' +
                       '<option value="pdf">PDF</option>' +
