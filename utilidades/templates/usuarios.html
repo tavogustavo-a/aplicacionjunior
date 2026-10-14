@@ -57,7 +57,6 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>Usuario</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -66,7 +65,6 @@
           <tbody>
             {% for u in users %}
             <tr class="{% if not u.enabled %}row-off{% endif %}">
-              <td>{{ u.id }}</td>
               <td>
                 {{ u.username }}
                 {% if u.id == user_id %}<span class="badge-you">tú</span>{% endif %}
@@ -134,7 +132,7 @@
         {% include "_csrf.html" %}
         <label>
           Usuario
-          <input type="text" name="username" id="editUsername" maxlength="80" required />
+          <input type="text" name="username" id="editUsername" maxlength="80" required autocomplete="username" />
         </label>
 
         <div id="adminPasswordBlock" class="stack admin-pass-block" hidden>
@@ -146,7 +144,6 @@
             Contraseña nueva
             <input type="password" name="password" id="editPasswordNueva" maxlength="200" autocomplete="new-password" placeholder="Dejar vacío para no cambiar" />
           </label>
-          <p class="hint">Si cambias la contraseña del admin, debes escribir la actual y luego la nueva.</p>
         </div>
 
         <div id="normalPasswordBlock" class="stack">
@@ -156,9 +153,9 @@
           </label>
         </div>
 
-        <div class="actions">
+        <div class="actions actions-center">
           <button type="submit" class="btn primary">Guardar cambios</button>
-          <button type="button" class="btn ghost" id="editUserCancel">Cancelar</button>
+          <button type="button" class="btn danger" id="editUserCancel">Cancelar</button>
         </div>
       </form>
     </div>

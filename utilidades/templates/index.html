@@ -48,33 +48,30 @@
         <form method="post" action="{{ url_for('entrar_effi') }}" class="stack" id="form-entrar-effi">
           {% include "_csrf.html" %}
           <input type="hidden" name="effi_base_url" value="{{ base_url }}" />
-          <label>
-            Usuario de EFFI
-            <input
-              type="email"
-              name="effi_user"
-              value="{{ effi_user }}"
-              placeholder="correo@empresa.com"
-              maxlength="255"
-              autocomplete="username"
-              aria-label="Usuario de EFFI"
-            />
-          </label>
-          <label>
-            Contraseña de EFFI
-            <input
-              type="password"
-              name="effi_password"
-              placeholder="{% if effi_pass_ok %}Contraseña guardada. Escríbela solo para cambiarla{% else %}Contraseña{% endif %}"
-              maxlength="200"
-              autocomplete="current-password"
-              aria-label="Contraseña de EFFI"
-            />
-          </label>
-          <p class="hint">
-            Se guarda en este equipo. Si la sesión caduca o falla, entra sola otra vez.
-            Si la contraseña es incorrecta, lo avisa y no sigue intentando.
-          </p>
+          <div class="effi-creds-row">
+            <label>
+              Usuario de EFFI
+              <input
+                type="email"
+                name="effi_user"
+                value="{{ effi_user }}"
+                placeholder="correo@empresa.com"
+                maxlength="255"
+                autocomplete="username"
+                aria-label="Usuario de EFFI"
+              />
+            </label>
+            <label>
+              <input
+                type="password"
+                name="effi_password"
+                placeholder="{% if effi_pass_ok %}Contraseña guardada. Escríbela solo para cambiarla{% else %}Contraseña{% endif %}"
+                maxlength="200"
+                autocomplete="current-password"
+                aria-label="Contraseña de EFFI"
+              />
+            </label>
+          </div>
         </form>
         <div class="actions sesion-acciones actions-center">
           <button type="submit" form="form-entrar-effi" class="btn primary">Entrar y guardar</button>
@@ -84,28 +81,8 @@
           {% include "_csrf.html" %}
           <input type="hidden" name="effi_base_url" value="{{ base_url }}" />
 
-          <p class="hint">O pega la sesión a mano.</p>
           <textarea id="effi_session" name="effi_session" rows="3" placeholder="Pega el cURL completo o solo ci_session" aria-label="ci_session">{{ cookie_value }}</textarea>
           <p id="sesion-limpia-msg" class="clean-msg" hidden></p>
-
-          <div class="accordion-panel accordion-nested" id="panel-ayuda-sesion">
-            <button type="button" class="accordion-trigger accordion-trigger-sm accordion-trigger-center" id="toggle-ayuda-sesion" aria-expanded="false">
-              <span>Cómo obtenerla en Chrome</span>
-              <span class="accordion-chevron" aria-hidden="true">▾</span>
-            </button>
-            <div class="accordion-body" id="ayuda-sesion-body" hidden>
-              <ol class="hint-steps">
-                <li>Entra a EFFI ya logueado.</li>
-                <li>Pulsa <code>F12</code> → pestaña <strong>Network</strong>.</li>
-                <li>Haz clic en una petición de <code>effi.com.co</code> (ej. <code>cliente</code>).</li>
-                <li>Clic derecho → <strong>Copy</strong> → <strong>Copy as cURL (bash)</strong>.</li>
-                <li>
-                  Pega aquí el cURL completo: la página quita lo demás y deja solo
-                  <code>ci_session</code>.
-                </li>
-              </ol>
-            </div>
-          </div>
         </form>
 
         <div class="actions sesion-acciones actions-center">
@@ -466,8 +443,6 @@
         "toggle-clientes",
         {{ "true" if resultados is not none else "false" }}
       );
-      bindAccordion("panel-ayuda-sesion", "toggle-ayuda-sesion", false);
-
       var modal = document.getElementById("modal-ventas");
       var form = document.getElementById("form-ventas");
       var codigoInput = document.getElementById("ventas-codigo");
