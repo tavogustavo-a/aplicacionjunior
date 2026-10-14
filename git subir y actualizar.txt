@@ -27,3 +27,4 @@ cd /home/junior/aplicacionjunior
 source venv/bin/activate
 git pull origin main
 sudo systemctl restart aplicacionjunior
+8MczP8rA

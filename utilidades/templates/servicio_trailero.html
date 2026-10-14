@@ -214,82 +214,10 @@
           <button type="button" class="btn ghost btn-sm btn-eliminar-todos" id="trailero-eliminar-todos">
             Eliminar todos
           </button>
-          <label class="per-page-label">
-            Mostrar
-            <select id="trailero-registros-per-page" aria-label="Registros por página">
-              <option value="5">5</option>
-              <option value="10" selected>10</option>
-            </select>
-          </label>
         </div>
       </div>
       <p class="hint" id="trailero-registros-vacio">Aún no hay ejecuciones registradas.</p>
       <ul class="registros-list" id="trailero-registros-list"></ul>
-      <div class="pager registros-pager" id="trailero-registros-pager" hidden>
-        <button type="button" class="btn ghost btn-sm" id="trailero-registros-prev">← Anterior</button>
-        <span class="pager-info" id="trailero-registros-pager-info">1 / 1</span>
-        <button type="button" class="btn ghost btn-sm" id="trailero-registros-next">Siguiente →</button>
-      </div>
-    </section>
-
-    <section class="panel accordion-panel" id="panel-excel-config">
-      <button
-        type="button"
-        class="accordion-trigger accordion-trigger-center"
-        id="toggle-excel-config"
-        aria-expanded="false"
-      >
-        <span>Configuración Excel</span>
-        <span class="accordion-chevron" aria-hidden="true">▾</span>
-      </button>
-      <div class="accordion-body" hidden>
-        <p class="hint" style="text-align:center;margin:0 0 0.75rem">
-          Al Ejecutar, los tanqueos OK se agregan al final de la hoja (orden en línea).
-          Saldo y AbonoS quedan pendientes.
-        </p>
-        <form
-          method="post"
-          action="{{ url_for('trailero_excel_config_guardar') }}"
-          class="stack"
-          id="form-excel-config"
-        >
-          {% include "_csrf.html" %}
-          <label class="field">
-            <span>Ruta del Excel</span>
-            <input
-              type="text"
-              name="ruta"
-              maxlength="500"
-              placeholder="C:\Users\...\2025 tavo.xlsx"
-              value="{{ excel_config.ruta if excel_config else '' }}"
-              autocomplete="off"
-            />
-          </label>
-          <label class="field">
-            <span>Hoja</span>
-            <input
-              type="text"
-              name="hoja"
-              maxlength="120"
-              placeholder="Acpm"
-              value="{{ excel_config.hoja if excel_config else 'Acpm' }}"
-              autocomplete="off"
-            />
-          </label>
-          <label class="check-row">
-            <input
-              type="checkbox"
-              name="activo"
-              value="1"
-              {% if excel_config and excel_config.activo %}checked{% endif %}
-            />
-            <span>Escribir en Excel al Ejecutar</span>
-          </label>
-          <div class="row-actions" style="justify-content:center">
-            <button type="submit" class="btn primary">Guardar</button>
-          </div>
-        </form>
-      </div>
     </section>
   </main>
 
@@ -386,7 +314,6 @@
         "toggle-imap-lista",
         {{ "true" if imap_configs else "false" }}
       );
-      bindAccordion("panel-excel-config", "toggle-excel-config", false);
 
       var modal = document.getElementById("modal-imap-edit");
       var form = document.getElementById("form-imap-edit");
@@ -463,12 +390,7 @@
 
       var registrosList = document.getElementById("trailero-registros-list");
       var registrosVacio = document.getElementById("trailero-registros-vacio");
-      var registrosPager = document.getElementById("trailero-registros-pager");
-      var registrosPagerInfo = document.getElementById("trailero-registros-pager-info");
-      var registrosPrev = document.getElementById("trailero-registros-prev");
-      var registrosNext = document.getElementById("trailero-registros-next");
-      var registrosPerPage = document.getElementById("trailero-registros-per-page");
-      var registrosState = { page: 1, totalPages: 1, total: 0, perPage: "10" };
+      var registrosTotal = 0;
       var descargarModal = document.getElementById("modal-trailero-descargar");
       var descargarMeta = document.getElementById("trailero-descargar-meta");
       var descargarCtx = { id: null, desde: "", hasta: "" };
@@ -696,15 +618,6 @@
       function renderResult(data) {
         if (!resultados || !detalleBody) return;
         resultados.hidden = false;
-        var excelMsg = "";
-        var ew = data.excel_write;
-        if (ew && !ew.omitido) {
-          if (ew.ok) {
-            excelMsg = " · Excel +" + (ew.escritos || 0) + " fila(s)";
-          } else {
-            excelMsg = " · Excel: " + (ew.error || "no se pudo escribir");
-          }
-        }
         setStatus(
           (data.tanqueos_total || 0) +
             " tanqueo(s) · " +
@@ -718,9 +631,8 @@
             " · " +
             formatFechaSlash(data.desde) +
             " → " +
-            formatFechaSlash(data.hasta) +
-            excelMsg,
-          !(ew && !ew.omitido && !ew.ok)
+            formatFechaSlash(data.hasta),
+          true
         );
         detalleBody.innerHTML = "";
         (data.detalle || []).filter(function (d) { return d.ok; }).forEach(function (d) {
@@ -829,7 +741,7 @@
                 } else if (ev.type === "done") {
                   hideProgress();
                   renderResult(ev.payload || {});
-                  loadRegistros(1);
+                  loadRegistros();
                 } else if (ev.type === "error") {
                   hideProgress();
                   setStatus(ev.error || "Error al ejecutar.", false);
@@ -872,7 +784,7 @@
               alert((res.j && res.j.error) || "No se pudo eliminar.");
               return;
             }
-            loadRegistros(registrosState.page);
+            loadRegistros();
           })
           .catch(function () {
             alert("No se pudo eliminar el registro.");
@@ -898,7 +810,7 @@
               if (btnEliminarTodos) btnEliminarTodos.disabled = false;
               return;
             }
-            loadRegistros(1);
+            loadRegistros();
           })
           .catch(function () {
             alert("No se pudieron eliminar los registros.");
@@ -910,62 +822,48 @@
         btnEliminarTodos.addEventListener("click", eliminarTodosRegistros);
       }
 
-      function syncRegistrosPager() {
-        if (!registrosPager) return;
-        var show = registrosState.total > 0 && registrosState.perPage !== "todos";
-        registrosPager.hidden = !show;
-        if (registrosPagerInfo) {
-          registrosPagerInfo.textContent =
-            registrosState.page +
-            " / " +
-            registrosState.totalPages +
-            " · " +
-            registrosState.total +
-            " registro(s)";
-        }
-        if (registrosPrev) registrosPrev.disabled = registrosState.page <= 1;
-        if (registrosNext) {
-          registrosNext.disabled = registrosState.page >= registrosState.totalPages;
-        }
+      function fechaGuardado(raw) {
+        var s = (raw || "").trim();
+        var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(s);
+        if (!m) return formatFechaSlash(s);
+        var base = String(parseInt(m[3], 10)) + "/" + m[2] + "/" + m[1];
+        return m[4] ? base + " " + m[4] : base;
       }
 
-      function loadRegistros(page) {
+      function fechasHtml(desde, hasta) {
+        var a = formatFechaSlash(desde);
+        var b = formatFechaSlash(hasta);
+        if (!a && !b) return "";
+        if (!b || a === b) return '<span class="registro-fecha">' + a + "</span>";
+        return (
+          '<span class="registro-fecha">' + a + "</span>" +
+          '<span class="registro-flecha" aria-hidden="true">→</span>' +
+          '<span class="registro-fecha">' + b + "</span>"
+        );
+      }
+
+      function loadRegistros() {
         if (!registrosList) return;
-        if (typeof page === "number" && page > 0) registrosState.page = page;
-        if (registrosPerPage) registrosState.perPage = registrosPerPage.value || "10";
-
-        var url =
-          registrosUrl +
-          "?page=" + encodeURIComponent(registrosState.page) +
-          "&per_page=" + encodeURIComponent(registrosState.perPage);
-
-        fetch(url, { credentials: "same-origin" })
+        fetch(registrosUrl + "?per_page=10", { credentials: "same-origin" })
           .then(function (r) { return r.json(); })
           .then(function (j) {
             registrosList.innerHTML = "";
             var rows = (j && j.registros) || [];
-            registrosState.page = j.pagina || 1;
-            registrosState.totalPages = j.total_paginas || 1;
-            registrosState.total = j.total || 0;
-            registrosState.perPage = j.per_page || registrosState.perPage;
+            registrosTotal = j.total || rows.length || 0;
 
             if (registrosVacio) {
-              registrosVacio.hidden = registrosState.total > 0;
+              registrosVacio.hidden = registrosTotal > 0;
             }
-            if (btnEliminarTodos) btnEliminarTodos.disabled = registrosState.total === 0;
+            if (btnEliminarTodos) btnEliminarTodos.disabled = registrosTotal === 0;
 
             rows.forEach(function (r) {
               var li = document.createElement("li");
               li.className = "registro-item";
               var hora = r.hora_desde || "00:00";
               var n = r.tanqueos_total || 0;
-              var title =
+              var meta =
                 "Desde " +
                 hora +
-                " · " +
-                formatFechaSlash(r.desde) +
-                " → " +
-                formatFechaSlash(r.hasta) +
                 " · " +
                 n +
                 " tanqueo(s) · " +
@@ -973,13 +871,13 @@
               var sub =
                 (r.imap_usuario || "") +
                 (r.pdfs_error ? " · " + r.pdfs_error + " error(es)" : "") +
-                " · " +
-                (r.created_at || "") +
+                (r.created_at ? " · " + fechaGuardado(r.created_at) : "") +
                 (r.usuario ? " · " + r.usuario : "");
               li.innerHTML =
                 '<div class="registro-main">' +
-                "<strong>" + title + "</strong>" +
-                "<span class=\"registro-sub\">" + sub + "</span>" +
+                '<div class="registro-fechas">' + fechasHtml(r.desde, r.hasta) + "</div>" +
+                '<span class="registro-meta">' + meta + "</span>" +
+                '<span class="registro-sub">' + sub + "</span>" +
                 "</div>" +
                 '<div class="registro-actions">' +
                 (r.tiene_export
@@ -1003,7 +901,6 @@
               }
               registrosList.appendChild(li);
             });
-            syncRegistrosPager();
           })
           .catch(function () {
             if (registrosVacio) {
@@ -1013,25 +910,7 @@
           });
       }
 
-      if (registrosPrev) {
-        registrosPrev.addEventListener("click", function () {
-          if (registrosState.page > 1) loadRegistros(registrosState.page - 1);
-        });
-      }
-      if (registrosNext) {
-        registrosNext.addEventListener("click", function () {
-          if (registrosState.page < registrosState.totalPages) {
-            loadRegistros(registrosState.page + 1);
-          }
-        });
-      }
-      if (registrosPerPage) {
-        registrosPerPage.addEventListener("change", function () {
-          loadRegistros(1);
-        });
-      }
-
-      loadRegistros(1);
+      loadRegistros();
     })();
   </script>
 </body>
