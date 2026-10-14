@@ -1,0 +1,13 @@
+{% extends "error_base.html" %}
+
+{% block title %}No encontrado{% endblock %}
+
+{% block content %}
+  <div class="err-code">404</div>
+  <div class="err-icon" aria-hidden="true">?</div>
+  <h1>Página no encontrada</h1>
+  <p>No existe esta ruta en aplicacionjunior. Revisa el enlace o vuelve al inicio.</p>
+  <div class="err-actions">
+    <a class="err-btn" href="{{ home_url }}">Ir al inicio</a>
+  </div>
+{% endblock %}

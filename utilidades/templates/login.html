@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ingreso · aplicacionjunior</title>
+  {% include "_icons.html" %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;550;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  {% include "_sw.html" %}
+</head>
+<body>
+  <div class="bg"></div>
+  <main class="shell login-shell">
+    <header class="hero hero-row">
+      <p class="brand">aplicacionjunior</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% if error %}
+      <div class="flash error">{{ error }}</div>
+    {% endif %}
+
+    <section class="panel login-panel">
+      <div class="panel-head">
+        <h2>Ingresar</h2>
+      </div>
+
+      <form method="post" class="stack">
+        {% include "_csrf.html" %}
+        <label>
+          Usuario
+          <input type="text" name="usuario" autocomplete="username" required autofocus maxlength="40" />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" autocomplete="current-password" required maxlength="200" />
+        </label>
+        <p class="hint">La sesión queda guardada hasta que pulses Salir.</p>
+        <div class="actions">
+          <button type="submit" class="btn primary">Entrar</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

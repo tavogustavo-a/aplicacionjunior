@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>aplicacionjunior</title>
+  {% include "_icons.html" %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;550;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="{{ url_for('static', filename='accordion.js') }}"></script>
+  {% include "_sw.html" %}
+</head>
+<body>
+  <div class="bg"></div>
+  <main class="shell">
+    {% include "_nav.html" %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% if error %}
+      <div class="flash error">
+        {% if error_code %}<span class="error-code">{{ error_code }}</span>{% endif %}
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <section class="panel accordion-panel" id="panel-cookie">
+      <button
+        type="button"
+        class="accordion-trigger accordion-trigger-center"
+        id="toggle-cookie"
+        aria-expanded="false"
+      >
+        <span>Sesión EFFI</span>
+        <span class="accordion-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="accordion-body" hidden>
+        <form method="post" action="{{ url_for('entrar_effi') }}" class="stack" id="form-entrar-effi">
+          {% include "_csrf.html" %}
+          <input type="hidden" name="effi_base_url" value="{{ base_url }}" />
+          <label>
+            Usuario de EFFI
+            <input
+              type="email"
+              name="effi_user"
+              value="{{ effi_user }}"
+              placeholder="correo@empresa.com"
+              maxlength="255"
+              autocomplete="username"
+              aria-label="Usuario de EFFI"
+            />
+          </label>
+          <label>
+            Contraseña de EFFI
+            <input
+              type="password"
+              name="effi_password"
+              placeholder="{% if effi_pass_ok %}Contraseña guardada. Escríbela solo para cambiarla{% else %}Contraseña{% endif %}"
+              maxlength="200"
+              autocomplete="current-password"
+              aria-label="Contraseña de EFFI"
+            />
+          </label>
+          <p class="hint">
+            Se guarda en este equipo. Si la cookie caduca o falla, entra sola otra vez.
+            Si la contraseña es incorrecta, lo avisa y no sigue intentando.
+          </p>
+        </form>
+        <div class="actions cookie-actions actions-center">
+          <button type="submit" form="form-entrar-effi" class="btn primary">Entrar y guardar</button>
+        </div>
+
+        <form method="post" action="{{ url_for('guardar_config') }}" class="stack" id="form-guardar-cookie">
+          {% include "_csrf.html" %}
+          <input type="hidden" name="effi_base_url" value="{{ base_url }}" />
+
+          <p class="hint">O pega la cookie a mano.</p>
+          <textarea id="effi_session" name="effi_session" rows="3" placeholder="Pega el cURL completo o solo ci_session" aria-label="ci_session">{{ cookie_value }}</textarea>
+          <p id="cookie-clean-msg" class="clean-msg" hidden></p>
+
+          <div class="accordion-panel accordion-nested" id="panel-ayuda-cookie">
+            <button type="button" class="accordion-trigger accordion-trigger-sm accordion-trigger-center" id="toggle-ayuda-cookie" aria-expanded="false">
+              <span>Cómo obtenerla en Chrome</span>
+              <span class="accordion-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="accordion-body" id="ayuda-cookie-body" hidden>
+              <ol class="hint-steps">
+                <li>Entra a EFFI ya logueado.</li>
+                <li>Pulsa <code>F12</code> → pestaña <strong>Network</strong>.</li>
+                <li>Haz clic en una petición de <code>effi.com.co</code> (ej. <code>cliente</code>).</li>
+                <li>Clic derecho → <strong>Copy</strong> → <strong>Copy as cURL (bash)</strong>.</li>
+                <li>
+                  Pega aquí el cURL completo: la página quita lo demás y deja solo
+                  <code>ci_session</code>.
+                </li>
+              </ol>
+            </div>
+          </div>
+        </form>
+
+        <div class="actions cookie-actions actions-center">
+          <button type="submit" form="form-guardar-cookie" class="btn primary">Guardar cookie</button>
+          <button
+            type="submit"
+            form="form-guardar-cookie"
+            formaction="{{ url_for('probar_conexion') }}"
+            class="btn ghost"
+          >
+            Probar conexión
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel accordion-panel" id="panel-clientes">
+      <button type="button" class="accordion-trigger accordion-trigger-center" id="toggle-clientes" aria-expanded="false">
+        <span>Buscar clientes</span>
+        <span class="accordion-chevron" aria-hidden="true">▾</span>
+      </button>
+
+      <div class="accordion-body" hidden>
+        <form method="get" action="{{ url_for('buscar') }}" class="search-row" id="form-buscar">
+          <input type="hidden" name="page" value="1" />
+          <div class="grow">
+            <span class="input-clear-wrap">
+              <input
+                type="text"
+                name="nombre"
+                id="buscar-nombre"
+                value="{{ busqueda }}"
+                placeholder="Vacío = todos · ej: alva"
+                maxlength="120"
+                aria-label="Buscar cliente"
+              />
+              <button
+                type="button"
+                class="btn-clear-input"
+                id="limpiar-nombre"
+                title="Limpiar"
+                aria-label="Limpiar búsqueda"
+                {% if not busqueda %}hidden{% endif %}
+              >×</button>
+            </span>
+          </div>
+          <button type="submit" class="btn primary" {% if not cookie_ok %}disabled{% endif %}>
+            Buscar en EFFI
+          </button>
+        </form>
+
+        {% if resultados is not none %}
+          <div class="results-meta">
+            {{ total or resultados|length }} resultado(s)
+          </div>
+
+          {% if resultados %}
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>NIT / Doc</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Dirección</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in resultados %}
+                    <tr>
+                      <td>{{ c.nombre }}</td>
+                      <td>{{ c.nit }}</td>
+                      <td>{{ c.telefono }}</td>
+                      <td>{{ c.email }}</td>
+                      <td>{{ c.direccion }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pager">
+              {% if pagina > 1 %}
+                <a class="btn ghost"
+                   href="{{ url_for('buscar', nombre=busqueda, page=pagina - 1) }}">
+                  ← Anterior
+                </a>
+              {% else %}
+                <button type="button" class="btn ghost" disabled>← Anterior</button>
+              {% endif %}
+
+              <span class="pager-info">{{ pagina }} / {{ total_paginas }}</span>
+
+              {% if pagina < total_paginas %}
+                <a class="btn ghost"
+                   href="{{ url_for('buscar', nombre=busqueda, page=pagina + 1) }}">
+                  Siguiente →
+                </a>
+              {% else %}
+                <button type="button" class="btn ghost" disabled>Siguiente →</button>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel" id="panel-ventas">
+      <div class="panel-head">
+        <h2>Modo ventas</h2>
+      </div>
+      <p class="hint ventas-hint">
+        Elige una sucursal o <strong>TODOS</strong>. Se abre el calendario para sumar facturas por medio de pago.
+      </p>
+
+      <div class="sucursal-grid" id="sucursal-grid">
+        {% for s in sucursales %}
+          <button
+            type="button"
+            class="sucursal-card"
+            data-codigo="{{ s.codigo }}"
+            data-nombre="{{ s.nombre }}"
+            {% if not cookie_ok %}disabled{% endif %}
+          >
+            <span class="sucursal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                <path d="M3 10h18M8 3v4M16 3v4"></path>
+              </svg>
+            </span>
+            <span class="sucursal-code">{{ s.codigo }}</span>
+            <span class="sucursal-name">{{ s.nombre }}</span>
+          </button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel" id="panel-registros">
+      <div class="panel-head">
+        <div class="title-with-info">
+          <h2>Registros</h2>
+          <button
+            type="button"
+            class="btn-info"
+            id="btn-info-registros"
+            title="Información"
+            aria-label="Información sobre registros"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 10v6"></path>
+              <circle cx="12" cy="7.25" r="0.9" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </button>
+        </div>
+        <div class="registros-tools">
+          <button type="button" class="btn ghost btn-sm btn-eliminar-todos" id="ventas-eliminar-todos">
+            Eliminar todos
+          </button>
+          <label class="per-page-label">
+            Mostrar
+            <select id="registros-per-page" name="registros_per_page" aria-label="Registros por página">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <p class="hint" id="ventas-registros-vacio">Aún no hay búsquedas registradas.</p>
+      <ul class="registros-list" id="ventas-registros-list"></ul>
+      <div class="pager registros-pager" id="registros-pager" hidden>
+        <button type="button" class="btn ghost btn-sm" id="registros-prev">← Anterior</button>
+        <span class="pager-info" id="registros-pager-info">1 / 1</span>
+        <button type="button" class="btn ghost btn-sm" id="registros-next">Siguiente →</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modal-info-registros" hidden>
+    <div class="modal-card modal-info" role="dialog" aria-modal="true" aria-labelledby="info-registros-titulo">
+      <div class="panel-head">
+        <h2 id="info-registros-titulo">Registros</h2>
+        <button type="button" class="btn ghost btn-sm" id="cerrar-info-registros" aria-label="Cerrar">Cerrar</button>
+      </div>
+      <p class="hint info-modal-text">
+        Historial de búsquedas de ventas (desde → hasta).
+      </p>
+      <p class="hint info-modal-text">
+        Se guardan como máximo 10. El número 11 reemplaza al más antiguo.
+      </p>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-ventas" hidden>
+    <div class="modal-card modal-ventas" role="dialog" aria-modal="true" aria-labelledby="ventas-titulo">
+      <div class="panel-head">
+        <h2 id="ventas-titulo">Ventas</h2>
+        <button type="button" class="btn ghost btn-sm" id="cerrar-ventas" aria-label="Cerrar">Cerrar</button>
+      </div>
+
+      <form id="form-ventas" class="calendar-form">
+        <input type="hidden" id="ventas-codigo" name="ventas_codigo" value="" />
+        <div class="calendar-fields">
+          <label>
+            Desde
+            <input type="date" id="ventas-desde" name="ventas_desde" required />
+          </label>
+          <label>
+            Hasta
+            <input type="date" id="ventas-hasta" name="ventas_hasta" required />
+          </label>
+        </div>
+
+        <div class="medios-filtro">
+          <div class="medios-filtro-head">
+            <span>Medios de pago</span>
+            <label class="medio-chip medio-chip-all">
+              <input type="checkbox" id="medio-todos" name="medio_todos" checked />
+              Todos
+            </label>
+          </div>
+          <div class="medios-checks" id="medios-checks">
+            {% for m in medios_pago %}
+              <label class="medio-chip">
+                <input
+                  type="checkbox"
+                  id="medio-{{ m.key }}"
+                  name="medio"
+                  class="medio-check"
+                  value="{{ m.key }}"
+                  checked
+                />
+                {{ m.nombre }}
+              </label>
+            {% endfor %}
+          </div>
+          <p class="hint">
+            Marca uno o varios. Al final se suma el total de los seleccionados;
+            aparecerán individuales. En la búsqueda siempre saldrán los 7 medios
+            (incluye Pago electrónico · Mercado Pago y Anticipo).
+          </p>
+        </div>
+
+        <div class="actions actions-center">
+          <button type="submit" class="btn primary" id="btn-sumar-ventas">
+            Buscar y sumar
+          </button>
+        </div>
+      </form>
+
+      <p class="ventas-status" id="ventas-status" hidden></p>
+      <div class="ventas-progress" id="ventas-progress" hidden>
+        <div class="ventas-progress-track">
+          <div class="ventas-progress-fill" id="ventas-progress-fill"></div>
+        </div>
+        <p class="ventas-progress-text" id="ventas-progress-text"></p>
+      </div>
+
+      <div id="ventas-resultados" class="ventas-resultados" hidden>
+        <div class="results-meta" id="ventas-meta"></div>
+        <div id="ventas-resumen-wrap">
+          <div class="table-wrap" id="ventas-resumen-simple">
+            <table>
+              <thead>
+                <tr>
+                  <th>Medio de pago</th>
+                  <th>Facturas</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="ventas-medios-body"></tbody>
+              <tfoot>
+                <tr>
+                  <th>Total general</th>
+                  <th id="ventas-facturas-total">0</th>
+                  <th id="ventas-total-general">$0</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div id="ventas-resumen-por-sucursal" hidden></div>
+        </div>
+
+        <div class="ventas-lista-head">
+          <h3>Listado</h3>
+          <div class="export-actions" id="ventas-export-actions">
+            <a class="btn ghost btn-sm" id="export-txt" href="#">Bloc de notas</a>
+            <a class="btn ghost btn-sm" id="export-xlsx" href="#">Excel</a>
+            <a class="btn ghost btn-sm" id="export-pdf" href="#">PDF</a>
+          </div>
+        </div>
+        <p class="hint ventas-cuenta-hint">
+          Se lee el PDF (Ver PDF) de cada factura para la numeración.
+          Si una factura tiene varios medios (ej. anticipo + transferencia),
+          sale en filas seguidas con el mismo folio y el valor de cada medio.
+          En transferencias también la cuenta Bancolombia
+          <code id="ventas-cuenta-esperada">72300006159</code>.
+          Si sale otra, la fila va en amarillo.
+        </p>
+        <div class="table-wrap table-wrap-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Factura</th>
+                <th>Numeración PDF</th>
+                <th>Fecha factura</th>
+                <th>Cliente</th>
+                <th>Medio</th>
+                <th>Cuenta</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="ventas-detalle-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='cookie_clean.js') }}"></script>
+  <script>
+    (function () {
+      var cookieOk = {{ "true" if cookie_ok else "false" }};
+      var resumenUrl = {{ url_for("api_ventas_resumen")|tojson }};
+      var exportTxtUrl = {{ url_for("api_ventas_exportar", formato="txt")|tojson }};
+      var exportXlsxUrl = {{ url_for("api_ventas_exportar", formato="xlsx")|tojson }};
+      var exportPdfUrl = {{ url_for("api_ventas_exportar", formato="pdf")|tojson }};
+      var registrosUrl = {{ url_for("api_ventas_registros")|tojson }};
+      var registroEliminarUrl = {{ url_for("api_ventas_registro_eliminar", rid=0)|tojson }}.replace("/0", "");
+      var registroExportBase = {{ url_for("api_ventas_registro_exportar", rid=0, formato="FORMATO")|tojson }};
+      var csrfToken = {{ csrf_token|tojson }};
+
+      function bindClear(inputId, clearId) {
+        var input = document.getElementById(inputId);
+        var clearBtn = document.getElementById(clearId);
+        if (!input || !clearBtn) return;
+        function syncClear() {
+          clearBtn.hidden = !input.value.trim();
+        }
+        clearBtn.addEventListener("click", function () {
+          input.value = "";
+          syncClear();
+          input.focus();
+        });
+        input.addEventListener("input", syncClear);
+        syncClear();
+      }
+      bindClear("buscar-nombre", "limpiar-nombre");
+
+      function bindAccordion(panelId, toggleId, defaultOpen) {
+        if (typeof bindEffiAccordion === "function") {
+          bindEffiAccordion(panelId, toggleId, defaultOpen);
+          return;
+        }
+        var panel = document.getElementById(panelId);
+        var toggle = document.getElementById(toggleId);
+        var body = panel && panel.querySelector(":scope > .accordion-body");
+        if (!panel || !toggle || !body) return;
+        function apply(open) {
+          panel.classList.toggle("is-open", !!open);
+          body.hidden = !open;
+          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+        apply(!!defaultOpen);
+        toggle.addEventListener("click", function () {
+          apply(!panel.classList.contains("is-open"));
+        });
+      }
+      bindAccordion("panel-cookie", "toggle-cookie", {{ "true" if not cookie_ok else "false" }});
+      bindAccordion(
+        "panel-clientes",
+        "toggle-clientes",
+        {{ "true" if resultados is not none else "false" }}
+      );
+      bindAccordion("panel-ayuda-cookie", "toggle-ayuda-cookie", false);
+
+      var modal = document.getElementById("modal-ventas");
+      var form = document.getElementById("form-ventas");
+      var codigoInput = document.getElementById("ventas-codigo");
+      var desdeInput = document.getElementById("ventas-desde");
+      var hastaInput = document.getElementById("ventas-hasta");
+      var titulo = document.getElementById("ventas-titulo");
+      var statusEl = document.getElementById("ventas-status");
+      var progressEl = document.getElementById("ventas-progress");
+      var progressFill = document.getElementById("ventas-progress-fill");
+      var progressText = document.getElementById("ventas-progress-text");
+      var resultados = document.getElementById("ventas-resultados");
+      var mediosBody = document.getElementById("ventas-medios-body");
+      var detalleBody = document.getElementById("ventas-detalle-body");
+      var btnSumar = document.getElementById("btn-sumar-ventas");
+      var cerrarBtn = document.getElementById("cerrar-ventas");
+      var exportTxt = document.getElementById("export-txt");
+      var exportXlsx = document.getElementById("export-xlsx");
+      var exportPdf = document.getElementById("export-pdf");
+      var registrosList = document.getElementById("ventas-registros-list");
+      var registrosVacio = document.getElementById("ventas-registros-vacio");
+      var registrosPerPage = document.getElementById("registros-per-page");
+      var registrosPager = document.getElementById("registros-pager");
+      var registrosPrev = document.getElementById("registros-prev");
+      var registrosNext = document.getElementById("registros-next");
+      var registrosPagerInfo = document.getElementById("registros-pager-info");
+      var registrosState = { page: 1, perPage: "10", totalPages: 1, total: 0 };
+      var medioTodos = document.getElementById("medio-todos");
+      var medioChecks = Array.prototype.slice.call(
+        document.querySelectorAll(".medio-check")
+      );
+
+      if (exportTxt) exportTxt.href = exportTxtUrl;
+      if (exportXlsx) exportXlsx.href = exportXlsxUrl;
+      if (exportPdf) exportPdf.href = exportPdfUrl;
+
+      function filenameFromDisposition(header, fallback) {
+        if (!header) return fallback;
+        var m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(header);
+        if (!m) return fallback;
+        try {
+          return decodeURIComponent((m[1] || m[2] || "").trim()) || fallback;
+        } catch (e) {
+          return (m[1] || m[2] || fallback).trim() || fallback;
+        }
+      }
+
+      function blobToBase64(blob) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            var s = String(reader.result || "");
+            var i = s.indexOf(",");
+            resolve(i >= 0 ? s.slice(i + 1) : s);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function downloadViaAnchor(blob, filename) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename || "archivo";
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 1500);
+      }
+
+      function downloadExport(url, fallbackName) {
+        return fetch(url, { credentials: "same-origin" })
+          .then(function (r) {
+            if (!r.ok) {
+              return r
+                .json()
+                .catch(function () {
+                  return {};
+                })
+                .then(function (j) {
+                  throw new Error(
+                    (j && (j.error || j.message)) ||
+                      "No se pudo descargar el archivo."
+                  );
+                });
+            }
+            var name = filenameFromDisposition(
+              r.headers.get("Content-Disposition"),
+              fallbackName || "export"
+            );
+            return r.blob().then(function (blob) {
+              return { blob: blob, name: name };
+            });
+          })
+          .then(function (res) {
+            var api =
+              window.pywebview &&
+              window.pywebview.api &&
+              typeof window.pywebview.api.save_file === "function"
+                ? window.pywebview.api
+                : null;
+            if (api) {
+              return blobToBase64(res.blob).then(function (b64) {
+                return Promise.resolve(api.save_file(res.name, b64)).then(
+                  function (out) {
+                    if (out && out.ok === false && out.error === "Cancelado.") {
+                      return;
+                    }
+                    if (out && out.ok === false) {
+                      throw new Error(out.error || "No se pudo guardar.");
+                    }
+                  }
+                );
+              });
+            }
+            downloadViaAnchor(res.blob, res.name);
+          })
+          .catch(function (err) {
+            alert((err && err.message) || "Error al descargar.");
+          });
+      }
+
+      function bindExportLink(el, fallbackName) {
+        if (!el) return;
+        el.addEventListener("click", function (e) {
+          e.preventDefault();
+          var href = el.getAttribute("href");
+          if (!href || href === "#") {
+            alert("Primero busca y suma ventas.");
+            return;
+          }
+          downloadExport(href, fallbackName);
+        });
+      }
+      bindExportLink(exportTxt, "ventas.txt");
+      bindExportLink(exportXlsx, "ventas.xlsx");
+      bindExportLink(exportPdf, "ventas.pdf");
+
+      function setExportLinks(registroId) {
+        if (registroId) {
+          var base = registroExportBase.replace("/0/", "/" + registroId + "/");
+          if (exportTxt) exportTxt.href = base.replace("FORMATO", "txt");
+          if (exportXlsx) exportXlsx.href = base.replace("FORMATO", "xlsx");
+          if (exportPdf) exportPdf.href = base.replace("FORMATO", "pdf");
+        } else {
+          if (exportTxt) exportTxt.href = exportTxtUrl;
+          if (exportXlsx) exportXlsx.href = exportXlsxUrl;
+          if (exportPdf) exportPdf.href = exportPdfUrl;
+        }
+      }
+
+      function hideProgress() {
+        if (progressEl) progressEl.hidden = true;
+        if (progressFill) progressFill.style.width = "0%";
+        if (progressText) progressText.textContent = "";
+      }
+
+      function showProgress(ev) {
+        if (!progressEl) return;
+        progressEl.hidden = false;
+        var done = Number(ev.done || 0);
+        var total = Number(ev.total || 0);
+        var faltan = Number(ev.faltan != null ? ev.faltan : Math.max(total - done, 0));
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        if (progressFill) progressFill.style.width = pct + "%";
+        var msg = ev.message || "";
+        if (ev.type === "pdf_progress" || ev.phase === "pdf") {
+          if (total <= 0) {
+            msg = "No hay PDFs para leer.";
+          } else if (faltan > 0) {
+            msg =
+              "Leyendo PDF " + done + " de " + total +
+              " · faltan " + faltan +
+              (ev.factura ? " · " + ev.factura : "");
+          } else {
+            msg = "PDFs listos (" + total + "/" + total + ").";
+          }
+        }
+        if (progressText) progressText.textContent = msg;
+      }
+
+      function medioCellHtml(d) {
+        var nombre = d.medio_nombre || "";
+        var pasarela = d.pasarela || "";
+        if (!pasarela && d.medio_key === "pago_electronico") {
+          pasarela = "Mercado Pago";
+        }
+        if (pasarela) {
+          return (
+            '<span class="medio-stack">' +
+              "<strong>" + nombre + "</strong>" +
+              "<small>" + pasarela + "</small>" +
+            "</span>"
+          );
+        }
+        return nombre;
+      }
+
+      function appendDetalleRow(d) {
+        var tr = document.createElement("tr");
+        if (d.cuenta_alerta) tr.className = "row-alerta-cuenta";
+        var cuenta = d.cuenta || "—";
+        if (d.banco && d.cuenta) cuenta = d.banco + " " + d.cuenta;
+        var fechaFactura = d.fecha || "—";
+        tr.innerHTML =
+          "<td>" + (d.factura || "") + "</td>" +
+          "<td>" + (d.numeracion || "—") + "</td>" +
+          "<td>" + fechaFactura + "</td>" +
+          "<td>" + (d.cliente || "") + "</td>" +
+          "<td>" + medioCellHtml(d) + "</td>" +
+          "<td>" + cuenta + "</td>" +
+          "<td>" + money(d.total) + "</td>";
+        detalleBody.appendChild(tr);
+      }
+
+      function renderVentasResult(data) {
+        statusEl.className = "ventas-status ok";
+        statusEl.textContent =
+          data.facturas_total + " factura(s) · " + data.desde + " → " + data.hasta;
+        document.getElementById("ventas-meta").textContent =
+          data.sucursal_nombre +
+          " (" + data.codigo + ") · rango " +
+          data.desde + " → " + data.hasta;
+        if (data.cuenta_esperada) {
+          var cta = document.getElementById("ventas-cuenta-esperada");
+          if (cta) cta.textContent = data.cuenta_esperada;
+        }
+
+        var resumenSimple = document.getElementById("ventas-resumen-simple");
+        var resumenPorSuc = document.getElementById("ventas-resumen-por-sucursal");
+        var bloques = data.por_sucursal || [];
+        var esTodos = data.codigo === "TODOS" && bloques.length;
+
+        if (esTodos) {
+          if (resumenSimple) resumenSimple.hidden = true;
+          if (resumenPorSuc) {
+            resumenPorSuc.hidden = false;
+            resumenPorSuc.innerHTML = "";
+            bloques.forEach(function (b) {
+              var block = document.createElement("div");
+              block.className = "sucursal-resumen-block";
+              var rows = (b.medios || []).map(function (m) {
+                var medioLabel = m.nombre || "";
+                if (m.key === "pago_electronico") {
+                  medioLabel =
+                    '<span class="medio-stack"><strong>Pago electrónico</strong>' +
+                    "<small>Mercado Pago</small></span>";
+                }
+                return (
+                  "<tr><td>" + medioLabel + "</td><td>" + m.facturas +
+                  "</td><td>" + money(m.total) + "</td></tr>"
+                );
+              }).join("");
+              block.innerHTML =
+                "<h3 class=\"sucursal-resumen-title\">" +
+                (b.codigo || "") + " · " + (b.nombre || "") +
+                "</h3>" +
+                "<div class=\"table-wrap\"><table>" +
+                "<thead><tr><th>Medio de pago</th><th>Facturas</th><th>Total</th></tr></thead>" +
+                "<tbody>" + rows + "</tbody>" +
+                "<tfoot><tr><th>Total " + (b.nombre || b.codigo) + "</th><th>" +
+                (b.facturas_total || 0) + "</th><th>" + money(b.total_general) +
+                "</th></tr></tfoot></table></div>";
+              resumenPorSuc.appendChild(block);
+            });
+            var totalWrap = document.createElement("div");
+            totalWrap.className = "sucursal-resumen-total table-wrap";
+            totalWrap.innerHTML =
+              "<table><tfoot><tr>" +
+              "<th>Total completo</th>" +
+              "<th>" + (data.facturas_total || 0) + "</th>" +
+              "<th>" + money(data.total_general) + "</th>" +
+              "</tr></tfoot></table>";
+            resumenPorSuc.appendChild(totalWrap);
+          }
+        } else {
+          if (resumenSimple) resumenSimple.hidden = false;
+          if (resumenPorSuc) {
+            resumenPorSuc.hidden = true;
+            resumenPorSuc.innerHTML = "";
+          }
+          mediosBody.innerHTML = "";
+          (data.medios || []).forEach(function (m) {
+            var tr = document.createElement("tr");
+            var medioLabel = m.nombre || "";
+            if (m.key === "pago_electronico") {
+              medioLabel =
+                '<span class="medio-stack"><strong>Pago electrónico</strong>' +
+                "<small>Mercado Pago</small></span>";
+            }
+            tr.innerHTML =
+              "<td>" + medioLabel + "</td>" +
+              "<td>" + m.facturas + "</td>" +
+              "<td>" + money(m.total) + "</td>";
+            mediosBody.appendChild(tr);
+          });
+          document.getElementById("ventas-facturas-total").textContent = data.facturas_total;
+          document.getElementById("ventas-total-general").textContent = money(data.total_general);
+        }
+
+        if (detalleBody) {
+          detalleBody.innerHTML = "";
+          if (esTodos) {
+            bloques.forEach(function (b) {
+              var head = document.createElement("tr");
+              head.className = "detalle-sucursal-head";
+              head.innerHTML =
+                "<td colspan=\"7\"><strong>" +
+                (b.codigo || "") + " · " + (b.nombre || "") +
+                "</strong></td>";
+              detalleBody.appendChild(head);
+              (data.detalle || [])
+                .filter(function (d) { return d.sucursal === b.codigo; })
+                .forEach(appendDetalleRow);
+              var sub = document.createElement("tr");
+              sub.className = "detalle-sucursal-subtotal";
+              sub.innerHTML =
+                "<td colspan=\"5\"><strong>Total " + (b.nombre || b.codigo) +
+                "</strong></td>" +
+                "<td colspan=\"1\">" + (b.facturas_total || 0) + " factura(s)</td>" +
+                "<td><strong>" + money(b.total_general) + "</strong></td>";
+              detalleBody.appendChild(sub);
+            });
+            var tot = document.createElement("tr");
+            tot.className = "detalle-sucursal-total";
+            tot.innerHTML =
+              "<td colspan=\"5\"><strong>Total completo</strong></td>" +
+              "<td>" + (data.facturas_total || 0) + " factura(s)</td>" +
+              "<td><strong>" + money(data.total_general) + "</strong></td>";
+            detalleBody.appendChild(tot);
+          } else {
+            (data.detalle || []).forEach(appendDetalleRow);
+          }
+        }
+        setExportLinks(data.registro_id);
+        resultados.hidden = false;
+        loadRegistros(1);
+      }
+
+      function selectedMedios() {
+        return medioChecks
+          .filter(function (c) { return c.checked; })
+          .map(function (c) { return c.value; });
+      }
+
+      function syncMedioTodos() {
+        if (!medioTodos) return;
+        var n = medioChecks.length;
+        var on = selectedMedios().length;
+        medioTodos.checked = n > 0 && on === n;
+        medioTodos.indeterminate = on > 0 && on < n;
+      }
+
+      if (medioTodos) {
+        medioTodos.addEventListener("change", function () {
+          medioChecks.forEach(function (c) {
+            c.checked = medioTodos.checked;
+          });
+        });
+      }
+      medioChecks.forEach(function (c) {
+        c.addEventListener("change", syncMedioTodos);
+      });
+      syncMedioTodos();
+
+      function registroExportUrl(id, formato) {
+        return registroExportBase
+          .replace("/0/", "/" + id + "/")
+          .replace("FORMATO", formato);
+      }
+
+      var btnEliminarTodos = document.getElementById("ventas-eliminar-todos");
+
+      function eliminarRegistro(id) {
+        if (!confirm("¿Eliminar este registro?")) return;
+        fetch(registroEliminarUrl + "/" + id, {
+          method: "DELETE",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": csrfToken },
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (res) {
+            if (!res.ok || !res.j.ok) {
+              alert((res.j && res.j.error) || "No se pudo eliminar.");
+              return;
+            }
+            loadRegistros(registrosState.page);
+          })
+          .catch(function () {
+            alert("No se pudo eliminar el registro.");
+          });
+      }
+
+      function eliminarTodosRegistros() {
+        if (!confirm("¿Eliminar todos los registros de ventas? Se borran de la base de datos.")) return;
+        if (btnEliminarTodos) btnEliminarTodos.disabled = true;
+        fetch(registrosUrl, {
+          method: "DELETE",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": csrfToken },
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (res) {
+            if (!res.ok || !res.j.ok) {
+              alert((res.j && res.j.error) || "No se pudieron eliminar los registros.");
+              if (btnEliminarTodos) btnEliminarTodos.disabled = false;
+              return;
+            }
+            loadRegistros(1);
+          })
+          .catch(function () {
+            alert("No se pudieron eliminar los registros.");
+            if (btnEliminarTodos) btnEliminarTodos.disabled = false;
+          });
+      }
+
+      if (btnEliminarTodos) {
+        btnEliminarTodos.addEventListener("click", eliminarTodosRegistros);
+      }
+
+      function syncRegistrosPager() {
+        if (!registrosPager) return;
+        var show = registrosState.total > 0 && registrosState.perPage !== "todos";
+        registrosPager.hidden = !show;
+        if (registrosPagerInfo) {
+          registrosPagerInfo.textContent =
+            registrosState.page +
+            " / " +
+            registrosState.totalPages +
+            " · " +
+            registrosState.total +
+            " registro(s)";
+        }
+        if (registrosPrev) registrosPrev.disabled = registrosState.page <= 1;
+        if (registrosNext) {
+          registrosNext.disabled = registrosState.page >= registrosState.totalPages;
+        }
+      }
+
+      function loadRegistros(page) {
+        if (!registrosList) return;
+        if (typeof page === "number" && page > 0) registrosState.page = page;
+        if (registrosPerPage) registrosState.perPage = registrosPerPage.value || "10";
+
+        var url =
+          registrosUrl +
+          "?page=" + encodeURIComponent(registrosState.page) +
+          "&per_page=" + encodeURIComponent(registrosState.perPage);
+
+        fetch(url, { credentials: "same-origin" })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            registrosList.innerHTML = "";
+            var rows = (j && j.registros) || [];
+            registrosState.page = j.pagina || 1;
+            registrosState.totalPages = j.total_paginas || 1;
+            registrosState.total = j.total || 0;
+            registrosState.perPage = j.per_page || registrosState.perPage;
+
+            if (registrosVacio) {
+              registrosVacio.hidden = registrosState.total > 0;
+              if (!registrosState.total) {
+                registrosVacio.textContent = "Aún no hay búsquedas registradas.";
+              }
+            }
+            if (btnEliminarTodos) btnEliminarTodos.disabled = registrosState.total === 0;
+            syncRegistrosPager();
+
+            rows.forEach(function (r) {
+              var li = document.createElement("li");
+              li.className = "registro-item";
+              li.innerHTML =
+                '<div class="registro-main">' +
+                  '<span class="registro-rango"><strong>' +
+                  (r.desde || "") +
+                  "</strong> → <strong>" +
+                  (r.hasta || "") +
+                  "</strong></span>" +
+                  '<span class="registro-meta">' +
+                  (r.sucursal || "") +
+                  (r.sucursal_nombre ? " · " + r.sucursal_nombre : "") +
+                  " · " +
+                  (r.facturas_total || 0) +
+                  " factura(s) · " +
+                  money(r.total_general) +
+                  "</span>" +
+                  '<span class="registro-when">' +
+                  (r.created_at || "") +
+                  (r.usuario ? " · " + r.usuario : "") +
+                  "</span>" +
+                "</div>" +
+                '<div class="registro-actions">' +
+                  '<label class="registro-export-label">' +
+                    '<span class="sr-only">Descargar</span>' +
+                    '<select class="registro-export-select" id="registro-export-' +
+                      r.id +
+                      '" name="registro_export_' +
+                      r.id +
+                      '" aria-label="Descargar registro">' +
+                      '<option value="">Descargar…</option>' +
+                      '<option value="xlsx">Excel</option>' +
+                      '<option value="txt">Bloc de notas</option>' +
+                      '<option value="pdf">PDF</option>' +
+                    "</select>" +
+                  "</label>" +
+                  '<button type="button" class="btn-icon btn-delete" title="Eliminar" aria-label="Eliminar">×</button>' +
+                "</div>";
+
+              var btnDel = li.querySelector(".btn-delete");
+              var selExport = li.querySelector(".registro-export-select");
+
+              if (btnDel) {
+                btnDel.addEventListener("click", function (e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  eliminarRegistro(r.id);
+                });
+              }
+              if (selExport) {
+                selExport.addEventListener("click", function (e) {
+                  e.stopPropagation();
+                });
+                selExport.addEventListener("change", function () {
+                  var fmt = selExport.value;
+                  if (!fmt) return;
+                  if (!r.tiene_export) {
+                    alert("Este registro no tiene datos para descargar. Haz una búsqueda nueva.");
+                    selExport.value = "";
+                    return;
+                  }
+                  downloadExport(
+                    registroExportUrl(r.id, fmt),
+                    "ventas_" + r.id + "." + (fmt === "xlsx" ? "xlsx" : fmt)
+                  );
+                  selExport.value = "";
+                });
+              }
+              registrosList.appendChild(li);
+            });
+          })
+          .catch(function () {
+            if (registrosVacio) {
+              registrosVacio.hidden = false;
+              registrosVacio.textContent = "No se pudieron cargar los registros.";
+            }
+          });
+      }
+
+      function todayISO() {
+        var d = new Date();
+        var m = String(d.getMonth() + 1).padStart(2, "0");
+        var day = String(d.getDate()).padStart(2, "0");
+        return d.getFullYear() + "-" + m + "-" + day;
+      }
+
+      function money(n) {
+        try {
+          return new Intl.NumberFormat("es-CO", {
+            style: "currency",
+            currency: "COP",
+            maximumFractionDigits: 0,
+          }).format(n || 0);
+        } catch (e) {
+          return "$" + Math.round(n || 0).toLocaleString("es-CO");
+        }
+      }
+
+      function openModal(codigo, nombre) {
+        codigoInput.value = codigo;
+        titulo.textContent = "Ventas · " + codigo;
+        var hoy = todayISO();
+        desdeInput.value = hoy;
+        hastaInput.value = hoy;
+        statusEl.hidden = true;
+        statusEl.textContent = "";
+        statusEl.className = "ventas-status";
+        hideProgress();
+        resultados.hidden = true;
+        mediosBody.innerHTML = "";
+        if (detalleBody) detalleBody.innerHTML = "";
+        var rs = document.getElementById("ventas-resumen-simple");
+        var rp = document.getElementById("ventas-resumen-por-sucursal");
+        if (rs) rs.hidden = false;
+        if (rp) { rp.hidden = true; rp.innerHTML = ""; }
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+        desdeInput.focus();
+      }
+
+      function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove("modal-open");
+      }
+
+      document.querySelectorAll(".sucursal-card").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          if (!cookieOk || btn.disabled) return;
+          openModal(btn.getAttribute("data-codigo"), btn.getAttribute("data-nombre"));
+        });
+      });
+
+      if (cerrarBtn) cerrarBtn.addEventListener("click", closeModal);
+      if (modal) {
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) closeModal();
+        });
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal && !modal.hidden) closeModal();
+      });
+
+      if (form) {
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var codigo = codigoInput.value;
+          var desde = desdeInput.value;
+          var hasta = hastaInput.value;
+          var medios = selectedMedios();
+          if (!codigo || !desde || !hasta) return;
+          if (!medios.length) {
+            statusEl.hidden = false;
+            statusEl.className = "ventas-status error";
+            statusEl.textContent = "Selecciona al menos un medio de pago.";
+            return;
+          }
+
+          btnSumar.disabled = true;
+          statusEl.hidden = false;
+          statusEl.className = "ventas-status";
+          statusEl.textContent = "Consultando facturas en EFFI…";
+          hideProgress();
+          if (progressEl) {
+            progressEl.hidden = false;
+            if (progressText) progressText.textContent = "Preparando…";
+            if (progressFill) progressFill.style.width = "0%";
+          }
+          resultados.hidden = true;
+
+          var url =
+            resumenUrl +
+            "?sucursal=" + encodeURIComponent(codigo) +
+            "&desde=" + encodeURIComponent(desde) +
+            "&hasta=" + encodeURIComponent(hasta) +
+            "&medios=" + encodeURIComponent(medios.join(",")) +
+            "&stream=1";
+
+          fetch(url, { credentials: "same-origin" })
+            .then(function (r) {
+              if (!r.ok) {
+                return r.json().then(function (j) {
+                  throw new Error((j && (j.error || j.message)) || "Error HTTP");
+                }).catch(function (err) {
+                  if (err instanceof Error && err.message !== "Error HTTP") throw err;
+                  throw new Error("Error al consultar ventas.");
+                });
+              }
+              if (!r.body || !r.body.getReader) {
+                return r.json().then(function (j) {
+                  return { mode: "json", j: j };
+                });
+              }
+              var reader = r.body.getReader();
+              var decoder = new TextDecoder("utf-8");
+              var buffer = "";
+              var finalPayload = null;
+
+              function handleLine(line) {
+                line = line.trim();
+                if (!line) return;
+                var ev;
+                try { ev = JSON.parse(line); } catch (e) { return; }
+                if (ev.type === "status") {
+                  statusEl.className = "ventas-status";
+                  statusEl.textContent = ev.message || "Consultando…";
+                } else if (ev.type === "pdf_progress") {
+                  statusEl.className = "ventas-status";
+                  statusEl.textContent = "Leyendo PDFs de medios de pago…";
+                  showProgress(ev);
+                } else if (ev.type === "error") {
+                  throw new Error(
+                    (ev.code ? "[" + ev.code + "] " : "") + (ev.error || "Error")
+                  );
+                } else if (ev.type === "done") {
+                  finalPayload = ev.payload || null;
+                }
+              }
+
+              function pump() {
+                return reader.read().then(function (result) {
+                  if (result.value) {
+                    buffer += decoder.decode(result.value, { stream: true });
+                    var parts = buffer.split("\n");
+                    buffer = parts.pop() || "";
+                    parts.forEach(handleLine);
+                  }
+                  if (result.done) {
+                    if (buffer.trim()) handleLine(buffer);
+                    return { mode: "stream", j: finalPayload };
+                  }
+                  return pump();
+                });
+              }
+              return pump();
+            })
+            .then(function (res) {
+              var data = res.j;
+              if (!data || !data.ok) {
+                statusEl.className = "ventas-status error";
+                statusEl.textContent =
+                  (data && data.code ? "[" + data.code + "] " : "") +
+                  ((data && data.error) || "Error");
+                hideProgress();
+                return;
+              }
+              hideProgress();
+              renderVentasResult(data);
+            })
+            .catch(function (err) {
+              statusEl.className = "ventas-status error";
+              statusEl.textContent = (err && err.message) || "No se pudo consultar el resumen de ventas.";
+              hideProgress();
+            })
+            .finally(function () {
+              btnSumar.disabled = false;
+            });
+        });
+      }
+
+      if (registrosPerPage) {
+        registrosPerPage.addEventListener("change", function () {
+          loadRegistros(1);
+        });
+      }
+      if (registrosPrev) {
+        registrosPrev.addEventListener("click", function () {
+          if (registrosState.page > 1) loadRegistros(registrosState.page - 1);
+        });
+      }
+      if (registrosNext) {
+        registrosNext.addEventListener("click", function () {
+          if (registrosState.page < registrosState.totalPages) {
+            loadRegistros(registrosState.page + 1);
+          }
+        });
+      }
+
+      var modalInfoReg = document.getElementById("modal-info-registros");
+      var btnInfoReg = document.getElementById("btn-info-registros");
+      var cerrarInfoReg = document.getElementById("cerrar-info-registros");
+
+      function openInfoRegistros() {
+        if (!modalInfoReg) return;
+        modalInfoReg.hidden = false;
+        document.body.classList.add("modal-open");
+      }
+
+      function closeInfoRegistros() {
+        if (!modalInfoReg) return;
+        modalInfoReg.hidden = true;
+        if (!modal || modal.hidden) {
+          document.body.classList.remove("modal-open");
+        }
+      }
+
+      if (btnInfoReg) btnInfoReg.addEventListener("click", openInfoRegistros);
+      if (cerrarInfoReg) cerrarInfoReg.addEventListener("click", closeInfoRegistros);
+      if (modalInfoReg) {
+        modalInfoReg.addEventListener("click", function (e) {
+          if (e.target === modalInfoReg) closeInfoRegistros();
+        });
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modalInfoReg && !modalInfoReg.hidden) {
+          closeInfoRegistros();
+        }
+      });
+
+      loadRegistros(1);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Servicio Trailero · aplicacionjunior</title>
+  {% include "_icons.html" %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;550;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="{{ url_for('static', filename='accordion.js') }}"></script>
+  {% include "_sw.html" %}
+</head>
+<body>
+  <div class="bg"></div>
+  <main class="shell">
+    {% include "_nav.html" %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <section class="panel accordion-panel" id="panel-imap-nueva">
+      <button
+        type="button"
+        class="accordion-trigger accordion-trigger-center"
+        id="toggle-imap-nueva"
+        aria-expanded="false"
+      >
+        <span>Nueva configuración IMAP</span>
+        <span class="accordion-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="accordion-body" hidden>
+        <form method="post" class="stack" action="{{ url_for('imap_crear') }}">
+          {% include "_csrf.html" %}
+          <div class="imap-grid">
+            <input type="text" name="host" required maxlength="255" placeholder="imap.gmail.com" value="imap.gmail.com" aria-label="Servidor" />
+            <input type="number" name="port" min="1" max="65535" required value="993" placeholder="993" aria-label="Puerto" />
+          </div>
+          <div class="imap-grid imap-grid-creds">
+            <input type="text" name="usuario" required maxlength="255" autocomplete="off" placeholder="correo@dominio.com" aria-label="Usuario" />
+            <input type="password" name="password" required maxlength="500" autocomplete="new-password" placeholder="Contraseña o clave de aplicación" aria-label="Contraseña" />
+          </div>
+          <input type="text" name="carpeta" required maxlength="255" value="INBOX" placeholder="Carpeta a revisar (INBOX)" aria-label="Carpeta a revisar" />
+          <div class="actions actions-center">
+            <button type="submit" class="btn primary">Crear configuración</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel accordion-panel" id="panel-imap-lista">
+      <button
+        type="button"
+        class="accordion-trigger accordion-trigger-center"
+        id="toggle-imap-lista"
+        aria-expanded="false"
+      >
+        <span>Configuraciones IMAP</span>
+        <span class="accordion-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="accordion-body" hidden>
+        {% if not imap_configs %}
+          <p class="hint" style="text-align:center">Aún no hay configuraciones. Crea la primera arriba.</p>
+        {% else %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Servidor</th>
+                <th>Carpeta</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in imap_configs %}
+              <tr>
+                <td>{{ c.usuario }}</td>
+                <td class="mono-cell">{{ c.host }}:{{ c.port }}</td>
+                <td class="mono-cell">{{ c.carpeta or "INBOX" }}</td>
+                <td class="actions-cell imap-actions">
+                  <button
+                    type="button"
+                    class="btn-icon btn-edit-imap"
+                    title="Editar"
+                    aria-label="Editar"
+                    data-id="{{ c.id }}"
+                    data-host="{{ c.host }}"
+                    data-port="{{ c.port }}"
+                    data-usuario="{{ c.usuario }}"
+                    data-carpeta="{{ c.carpeta or 'INBOX' }}"
+                    data-action="{{ url_for('imap_editar', cid=c.id) }}"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.33H5v-.92l9.06-9.06.92.92L5.92 19.58zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  </button>
+                  <form method="post" action="{{ url_for('imap_probar', cid=c.id) }}">
+                    {% include "_csrf.html" %}
+                    <button type="submit" class="btn-icon btn-test" title="Probar conexión" aria-label="Probar conexión">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 9V7.5A1.5 1.5 0 0 0 15 6h-1V3h-1.5v3H11.5V3H10v3H9a1.5 1.5 0 0 0-1.5 1.5V9H6v3a6 6 0 0 0 5.25 5.95V21h1.5v-3.05A6 6 0 0 0 18 12V9h-1.5zM8.5 9V7.5h7V9h-7zm8 3a4.5 4.5 0 0 1-9 0v-1.5h9V12z"/></svg>
+                    </button>
+                  </form>
+                  <form
+                    method="post"
+                    action="{{ url_for('imap_eliminar', cid=c.id) }}"
+                    onsubmit="return confirm('¿Eliminar la configuración {{ c.usuario }}?');"
+                  >
+                    {% include "_csrf.html" %}
+                    <button type="submit" class="btn-icon btn-delete" title="Eliminar" aria-label="Eliminar">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3.5-8h1v7h-1zm3 0h1v7h-1zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel" id="panel-trailero-ejecutar">
+      <form id="form-trailero-ejecutar" class="calendar-form" onsubmit="return false;">
+        <div class="trailero-hora-row">
+          <label class="trailero-hora-inline" for="trailero-hora-desde">Hora de inicio</label>
+          <input type="time" id="trailero-hora-desde" name="hora_desde" value="00:00" required aria-label="Hora de inicio" />
+        </div>
+        <div class="calendar-fields">
+          <label>
+            Desde
+            <input type="date" id="trailero-desde" name="desde" required />
+          </label>
+          <label>
+            Hasta
+            <input type="date" id="trailero-hasta" name="hasta" required />
+          </label>
+        </div>
+        <div class="actions actions-center">
+          <button type="button" class="btn primary btn-ejecutar" id="btn-trailero-ejecutar"{% if not imap_configs %} disabled title="Crea una configuración IMAP primero"{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            <span>Ejecutar</span>
+          </button>
+        </div>
+      </form>
+
+      <p class="ventas-status" id="trailero-status" hidden></p>
+      <div class="ventas-progress" id="trailero-progress" hidden>
+        <div class="ventas-progress-track">
+          <div class="ventas-progress-fill" id="trailero-progress-fill"></div>
+        </div>
+        <p class="ventas-progress-text" id="trailero-progress-text"></p>
+      </div>
+
+      <div id="trailero-resultados" class="ventas-resultados" hidden>
+        <div class="ventas-lista-head">
+          <h3>Listado</h3>
+          <div class="export-actions" id="trailero-export-actions">
+            <a class="btn ghost btn-sm" id="trailero-export-txt" href="#">Bloc de notas</a>
+            <a class="btn ghost btn-sm" id="trailero-export-xlsx" href="#">Excel</a>
+            <a class="btn ghost btn-sm" id="trailero-export-pdf" href="#">PDF</a>
+          </div>
+        </div>
+        <div class="table-wrap table-wrap-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanqueo #</th>
+                <th>Fecha</th>
+                <th>Placa</th>
+                <th>Cantidad</th>
+                <th>Precio x Galón</th>
+                <th>Descuento</th>
+                <th>Valor Total</th>
+              </tr>
+            </thead>
+            <tbody id="trailero-detalle-body"></tbody>
+            <tfoot>
+              <tr>
+                <th colspan="6">Total</th>
+                <th id="trailero-total-general">$0</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div id="trailero-errores-wrap" hidden>
+          <h3 class="trailero-errores-title">No leídos / con error</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Archivo / Asunto</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody id="trailero-errores-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-trailero-registros">
+      <div class="panel-head">
+        <h2>Registros</h2>
+        <div class="registros-tools">
+          <button type="button" class="btn ghost btn-sm btn-eliminar-todos" id="trailero-eliminar-todos">
+            Eliminar todos
+          </button>
+          <label class="per-page-label">
+            Mostrar
+            <select id="trailero-registros-per-page" aria-label="Registros por página">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <p class="hint" id="trailero-registros-vacio">Aún no hay ejecuciones registradas.</p>
+      <ul class="registros-list" id="trailero-registros-list"></ul>
+      <div class="pager registros-pager" id="trailero-registros-pager" hidden>
+        <button type="button" class="btn ghost btn-sm" id="trailero-registros-prev">← Anterior</button>
+        <span class="pager-info" id="trailero-registros-pager-info">1 / 1</span>
+        <button type="button" class="btn ghost btn-sm" id="trailero-registros-next">Siguiente →</button>
+      </div>
+    </section>
+
+    <section class="panel accordion-panel" id="panel-excel-config">
+      <button
+        type="button"
+        class="accordion-trigger accordion-trigger-center"
+        id="toggle-excel-config"
+        aria-expanded="false"
+      >
+        <span>Configuración Excel</span>
+        <span class="accordion-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="accordion-body" hidden>
+        <p class="hint" style="text-align:center;margin:0 0 0.75rem">
+          Al Ejecutar, los tanqueos OK se agregan al final de la hoja (orden en línea).
+          Saldo y AbonoS quedan pendientes.
+        </p>
+        <form
+          method="post"
+          action="{{ url_for('trailero_excel_config_guardar') }}"
+          class="stack"
+          id="form-excel-config"
+        >
+          {% include "_csrf.html" %}
+          <label class="field">
+            <span>Ruta del Excel</span>
+            <input
+              type="text"
+              name="ruta"
+              maxlength="500"
+              placeholder="C:\Users\...\2025 tavo.xlsx"
+              value="{{ excel_config.ruta if excel_config else '' }}"
+              autocomplete="off"
+            />
+          </label>
+          <label class="field">
+            <span>Hoja</span>
+            <input
+              type="text"
+              name="hoja"
+              maxlength="120"
+              placeholder="Acpm"
+              value="{{ excel_config.hoja if excel_config else 'Acpm' }}"
+              autocomplete="off"
+            />
+          </label>
+          <label class="check-row">
+            <input
+              type="checkbox"
+              name="activo"
+              value="1"
+              {% if excel_config and excel_config.activo %}checked{% endif %}
+            />
+            <span>Escribir en Excel al Ejecutar</span>
+          </label>
+          <div class="row-actions" style="justify-content:center">
+            <button type="submit" class="btn primary">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modal-imap-edit" hidden>
+    <div class="modal-card modal-imap" role="dialog" aria-modal="true" aria-labelledby="imap-edit-titulo">
+      <div class="panel-head">
+        <h2 id="imap-edit-titulo">Editar IMAP</h2>
+        <button type="button" class="btn-close-x" id="cerrar-imap-edit" title="Cerrar" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.29 10.59 10.6l6.3-6.3z"/></svg>
+        </button>
+      </div>
+      <form method="post" class="stack" id="form-imap-edit" action="#">
+        {% include "_csrf.html" %}
+        <div class="imap-grid">
+          <input type="text" name="host" id="edit-imap-host" required maxlength="255" placeholder="imap.gmail.com" aria-label="Servidor" />
+          <input type="number" name="port" id="edit-imap-port" min="1" max="65535" required placeholder="993" aria-label="Puerto" />
+        </div>
+        <div class="imap-grid imap-grid-creds">
+          <input type="text" name="usuario" id="edit-imap-usuario" required maxlength="255" autocomplete="off" placeholder="correo@dominio.com" aria-label="Usuario" />
+          <input
+            type="password"
+            name="password"
+            id="edit-imap-password"
+            maxlength="500"
+            autocomplete="new-password"
+            placeholder="Dejar vacío para no cambiar"
+            aria-label="Contraseña"
+          />
+        </div>
+        <input type="text" name="carpeta" id="edit-imap-carpeta" required maxlength="255" placeholder="Carpeta a revisar (INBOX)" aria-label="Carpeta a revisar" />
+        <div class="actions actions-center">
+          <button type="submit" class="btn primary">Guardar cambios</button>
+          <button type="button" class="btn ghost" id="cancelar-imap-edit">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-trailero-descargar" hidden>
+    <div class="modal-card modal-descargar" role="dialog" aria-modal="true" aria-labelledby="trailero-descargar-titulo">
+      <div class="panel-head">
+        <h2 id="trailero-descargar-titulo">Descargar</h2>
+        <button type="button" class="btn-close-x" id="cerrar-trailero-descargar" title="Cerrar" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.29 10.59 10.6l6.3-6.3z"/></svg>
+        </button>
+      </div>
+      <p class="hint" id="trailero-descargar-meta" style="text-align:center"></p>
+      <div class="actions actions-center descargar-opciones">
+        <button type="button" class="btn ghost btn-descargar-fmt" data-fmt="txt">Bloc de notas</button>
+        <button type="button" class="btn ghost btn-descargar-fmt" data-fmt="xlsx">Excel</button>
+        <button type="button" class="btn ghost btn-descargar-fmt" data-fmt="pdf">PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var csrfToken = {{ csrf_token|tojson }};
+      var ejecutarUrl = {{ url_for('api_trailero_ejecutar')|tojson }};
+      var registrosUrl = {{ url_for('api_trailero_registros')|tojson }};
+      var registroEliminarBase = {{ url_for('api_trailero_registro_eliminar', rid=0)|tojson }};
+      var registroExportBase = {{ url_for('api_trailero_registro_exportar', rid=0, formato='FORMATO')|tojson }};
+      var exportTxtUrl = {{ url_for('api_trailero_exportar', formato='txt')|tojson }};
+      var exportXlsxUrl = {{ url_for('api_trailero_exportar', formato='xlsx')|tojson }};
+      var exportPdfUrl = {{ url_for('api_trailero_exportar', formato='pdf')|tojson }};
+      var defaultImapId = {{ (imap_configs[0].id if imap_configs else 0)|tojson }};
+
+      function bindAccordion(panelId, toggleId, defaultOpen) {
+        if (typeof bindEffiAccordion === "function") {
+          bindEffiAccordion(panelId, toggleId, defaultOpen);
+          return;
+        }
+        var panel = document.getElementById(panelId);
+        var toggle = document.getElementById(toggleId);
+        var body = panel && panel.querySelector(":scope > .accordion-body");
+        if (!panel || !toggle || !body) return;
+        function apply(open) {
+          panel.classList.toggle("is-open", !!open);
+          body.hidden = !open;
+          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+        apply(!!defaultOpen);
+        toggle.addEventListener("click", function () {
+          apply(!panel.classList.contains("is-open"));
+        });
+      }
+      bindAccordion(
+        "panel-imap-nueva",
+        "toggle-imap-nueva",
+        {{ "true" if not imap_configs else "false" }}
+      );
+      bindAccordion(
+        "panel-imap-lista",
+        "toggle-imap-lista",
+        {{ "true" if imap_configs else "false" }}
+      );
+      bindAccordion("panel-excel-config", "toggle-excel-config", false);
+
+      var modal = document.getElementById("modal-imap-edit");
+      var form = document.getElementById("form-imap-edit");
+      var btnClose = document.getElementById("cerrar-imap-edit");
+      var btnCancel = document.getElementById("cancelar-imap-edit");
+
+      function openModal(btn) {
+        if (!modal || !form || !btn) return;
+        form.action = btn.getAttribute("data-action") || "#";
+        document.getElementById("edit-imap-host").value = btn.getAttribute("data-host") || "";
+        document.getElementById("edit-imap-port").value = btn.getAttribute("data-port") || "993";
+        document.getElementById("edit-imap-usuario").value = btn.getAttribute("data-usuario") || "";
+        document.getElementById("edit-imap-password").value = "";
+        document.getElementById("edit-imap-carpeta").value = btn.getAttribute("data-carpeta") || "INBOX";
+        document.getElementById("imap-edit-titulo").textContent =
+          "Editar · " + (btn.getAttribute("data-usuario") || "IMAP");
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+        document.getElementById("edit-imap-host").focus();
+      }
+
+      function closeModal() {
+        if (!modal) return;
+        modal.hidden = true;
+        document.body.classList.remove("modal-open");
+      }
+
+      document.querySelectorAll(".btn-edit-imap").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          openModal(btn);
+        });
+      });
+      if (btnClose) btnClose.addEventListener("click", closeModal);
+      if (btnCancel) btnCancel.addEventListener("click", closeModal);
+      if (modal) {
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) closeModal();
+        });
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape") return;
+        if (modal && !modal.hidden) closeModal();
+        if (descargarModal && !descargarModal.hidden) closeDescargarModal();
+      });
+
+      function todayISO() {
+        var d = new Date();
+        var m = String(d.getMonth() + 1).padStart(2, "0");
+        var day = String(d.getDate()).padStart(2, "0");
+        return d.getFullYear() + "-" + m + "-" + day;
+      }
+      var desdeInput = document.getElementById("trailero-desde");
+      var hastaInput = document.getElementById("trailero-hasta");
+      var horaInput = document.getElementById("trailero-hora-desde");
+      if (desdeInput && hastaInput) {
+        var hoy = todayISO();
+        if (!desdeInput.value) desdeInput.value = hoy;
+        if (!hastaInput.value) hastaInput.value = hoy;
+      }
+      if (horaInput && !horaInput.value) horaInput.value = "00:00";
+
+      var btnEjecutar = document.getElementById("btn-trailero-ejecutar");
+      var statusEl = document.getElementById("trailero-status");
+      var progressEl = document.getElementById("trailero-progress");
+      var progressFill = document.getElementById("trailero-progress-fill");
+      var progressText = document.getElementById("trailero-progress-text");
+      var resultados = document.getElementById("trailero-resultados");
+      var detalleBody = document.getElementById("trailero-detalle-body");
+      var erroresWrap = document.getElementById("trailero-errores-wrap");
+      var erroresBody = document.getElementById("trailero-errores-body");
+      var exportTxt = document.getElementById("trailero-export-txt");
+      var exportXlsx = document.getElementById("trailero-export-xlsx");
+      var exportPdf = document.getElementById("trailero-export-pdf");
+
+      var registrosList = document.getElementById("trailero-registros-list");
+      var registrosVacio = document.getElementById("trailero-registros-vacio");
+      var registrosPager = document.getElementById("trailero-registros-pager");
+      var registrosPagerInfo = document.getElementById("trailero-registros-pager-info");
+      var registrosPrev = document.getElementById("trailero-registros-prev");
+      var registrosNext = document.getElementById("trailero-registros-next");
+      var registrosPerPage = document.getElementById("trailero-registros-per-page");
+      var registrosState = { page: 1, totalPages: 1, total: 0, perPage: "10" };
+      var descargarModal = document.getElementById("modal-trailero-descargar");
+      var descargarMeta = document.getElementById("trailero-descargar-meta");
+      var descargarCtx = { id: null, desde: "", hasta: "" };
+
+      function openDescargarModal(r) {
+        if (!descargarModal || !r) return;
+        descargarCtx.id = r.id;
+        descargarCtx.desde = r.desde || "";
+        descargarCtx.hasta = r.hasta || "";
+        if (descargarMeta) {
+          descargarMeta.textContent =
+            "Desde " +
+            (r.hora_desde || "00:00") +
+            " · " +
+            formatFechaSlash(r.desde) +
+            " → " +
+            formatFechaSlash(r.hasta) +
+            " · " +
+            (r.tanqueos_total || 0) +
+            " tanqueo(s)";
+        }
+        descargarModal.hidden = false;
+        document.body.classList.add("modal-open");
+      }
+
+      function closeDescargarModal() {
+        if (!descargarModal) return;
+        descargarModal.hidden = true;
+        document.body.classList.remove("modal-open");
+        descargarCtx.id = null;
+      }
+
+      document.querySelectorAll(".btn-descargar-fmt").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var fmt = btn.getAttribute("data-fmt");
+          if (!fmt || !descargarCtx.id) return;
+          downloadExport(
+            registroExportUrl(descargarCtx.id, fmt),
+            "trailero_" + descargarCtx.desde + "_" + descargarCtx.hasta + "." + fmt
+          );
+          closeDescargarModal();
+        });
+      });
+      var btnCerrarDescargar = document.getElementById("cerrar-trailero-descargar");
+      if (btnCerrarDescargar) btnCerrarDescargar.addEventListener("click", closeDescargarModal);
+      if (descargarModal) {
+        descargarModal.addEventListener("click", function (e) {
+          if (e.target === descargarModal) closeDescargarModal();
+        });
+      }
+
+      function formatFechaSlash(raw) {
+        var s = (raw || "").trim();
+        if (!s) return "";
+        if (s.indexOf("/") >= 0 && s.indexOf("-") < 0) return s;
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+        if (!m) return s.replace(/-/g, "/");
+        var y = m[1];
+        var mo = m[2];
+        var d = String(parseInt(m[3], 10));
+        return d + "/" + mo + "/" + y;
+      }
+
+      function money(n) {
+        var v = Number(n || 0);
+        return (
+          "$" +
+          v.toLocaleString("es-CO", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
+      }
+
+      function num(n, dec) {
+        if (n == null || n === "") return "—";
+        return Number(n).toLocaleString("es-CO", {
+          minimumFractionDigits: dec,
+          maximumFractionDigits: dec,
+        });
+      }
+
+      function hideProgress() {
+        if (progressEl) progressEl.hidden = true;
+        if (progressFill) progressFill.style.width = "0%";
+        if (progressText) progressText.textContent = "";
+      }
+
+      function showProgress(ev) {
+        if (!progressEl) return;
+        progressEl.hidden = false;
+        var done = Number(ev.done || 0);
+        var total = Number(ev.total || 0);
+        var faltan = Number(ev.faltan != null ? ev.faltan : Math.max(total - done, 0));
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        if (progressFill) progressFill.style.width = pct + "%";
+        var msg = ev.message || "";
+        if (ev.type === "pdf_progress" || ev.phase === "pdf") {
+          if (total <= 0) msg = "No hay PDFs para leer.";
+          else if (faltan > 0) {
+            msg =
+              "Leyendo PDF " + done + " de " + total +
+              " · faltan " + faltan +
+              (ev.factura ? " · " + ev.factura : "");
+          } else {
+            msg = "PDFs listos (" + total + "/" + total + ").";
+          }
+        }
+        if (progressText) progressText.textContent = msg;
+      }
+
+      function setStatus(text, ok) {
+        if (!statusEl) return;
+        statusEl.hidden = !text;
+        statusEl.textContent = text || "";
+        statusEl.className = "ventas-status" + (ok === true ? " ok" : ok === false ? " error" : "");
+      }
+
+      function filenameFromDisposition(header, fallback) {
+        if (!header) return fallback;
+        var m = /filename\*?=(?:UTF-8''|")?([^\";]+)/i.exec(header);
+        if (!m) return fallback;
+        try {
+          return decodeURIComponent(m[1].replace(/"/g, "").trim());
+        } catch (e) {
+          return m[1].replace(/"/g, "").trim() || fallback;
+        }
+      }
+
+      function blobToBase64(blob) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            var s = String(reader.result || "");
+            var i = s.indexOf(",");
+            resolve(i >= 0 ? s.slice(i + 1) : s);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function downloadViaAnchor(blob, name) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 1500);
+      }
+
+      function downloadExport(url, fallbackName) {
+        return fetch(url, { credentials: "same-origin" })
+          .then(function (r) {
+            if (!r.ok) {
+              return r.json().catch(function () { return {}; }).then(function (j) {
+                throw new Error((j && j.error) || "No se pudo descargar el archivo.");
+              });
+            }
+            var name = filenameFromDisposition(
+              r.headers.get("Content-Disposition"),
+              fallbackName || "export"
+            );
+            return r.blob().then(function (blob) {
+              return { blob: blob, name: name };
+            });
+          })
+          .then(function (res) {
+            var api =
+              window.pywebview &&
+              window.pywebview.api &&
+              typeof window.pywebview.api.save_file === "function"
+                ? window.pywebview.api
+                : null;
+            if (api) {
+              return blobToBase64(res.blob).then(function (b64) {
+                return Promise.resolve(api.save_file(res.name, b64)).then(function (out) {
+                  if (out && out.ok === false && out.error === "Cancelado.") return;
+                  if (out && out.ok === false) {
+                    throw new Error(out.error || "No se pudo guardar.");
+                  }
+                });
+              });
+            }
+            downloadViaAnchor(res.blob, res.name);
+          })
+          .catch(function (err) {
+            alert((err && err.message) || "Error al descargar.");
+          });
+      }
+
+      function bindExportLink(el, fallbackName) {
+        if (!el) return;
+        el.addEventListener("click", function (e) {
+          e.preventDefault();
+          var href = el.getAttribute("href");
+          if (!href || href === "#") {
+            alert("Primero ejecuta una búsqueda.");
+            return;
+          }
+          downloadExport(href, fallbackName);
+        });
+      }
+      bindExportLink(exportTxt, "trailero.txt");
+      bindExportLink(exportXlsx, "trailero.xlsx");
+      bindExportLink(exportPdf, "trailero.pdf");
+
+      function setExportLinks(registroId) {
+        if (registroId) {
+          var base = registroExportBase.replace("/0/", "/" + registroId + "/");
+          if (exportTxt) exportTxt.href = base.replace("FORMATO", "txt");
+          if (exportXlsx) exportXlsx.href = base.replace("FORMATO", "xlsx");
+          if (exportPdf) exportPdf.href = base.replace("FORMATO", "pdf");
+        } else {
+          if (exportTxt) exportTxt.href = exportTxtUrl;
+          if (exportXlsx) exportXlsx.href = exportXlsxUrl;
+          if (exportPdf) exportPdf.href = exportPdfUrl;
+        }
+      }
+
+      function renderResult(data) {
+        if (!resultados || !detalleBody) return;
+        resultados.hidden = false;
+        var excelMsg = "";
+        var ew = data.excel_write;
+        if (ew && !ew.omitido) {
+          if (ew.ok) {
+            excelMsg = " · Excel +" + (ew.escritos || 0) + " fila(s)";
+          } else {
+            excelMsg = " · Excel: " + (ew.error || "no se pudo escribir");
+          }
+        }
+        setStatus(
+          (data.tanqueos_total || 0) +
+            " tanqueo(s) · " +
+            (data.pdfs_error || 0) +
+            " error(es) · " +
+            (data.correos_total || 0) +
+            " correo(s) en carpeta" +
+            (data.omitidos_hora
+              ? " · " + data.omitidos_hora + " fuera de hora"
+              : "") +
+            " · " +
+            formatFechaSlash(data.desde) +
+            " → " +
+            formatFechaSlash(data.hasta) +
+            excelMsg,
+          !(ew && !ew.omitido && !ew.ok)
+        );
+        detalleBody.innerHTML = "";
+        (data.detalle || []).filter(function (d) { return d.ok; }).forEach(function (d) {
+          var tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" + (d.tanqueo != null ? d.tanqueo : "—") + "</td>" +
+            "<td>" + (formatFechaSlash(d.fecha) || "—") + "</td>" +
+            "<td>" + (d.placa || "—") + "</td>" +
+            "<td>" + num(d.cantidad, 3) + "</td>" +
+            "<td>" + money(d.precio_galon) + "</td>" +
+            "<td>" + money(d.descuento) + "</td>" +
+            "<td>" + money(d.valor_total) + "</td>";
+          detalleBody.appendChild(tr);
+        });
+        var totalEl = document.getElementById("trailero-total-general");
+        if (totalEl) totalEl.textContent = money(data.total_general);
+
+        var bad = (data.detalle || []).filter(function (d) { return !d.ok; });
+        if (erroresWrap && erroresBody) {
+          if (!bad.length) {
+            erroresWrap.hidden = true;
+            erroresBody.innerHTML = "";
+          } else {
+            erroresWrap.hidden = false;
+            erroresBody.innerHTML = "";
+            bad.forEach(function (d) {
+              var tr = document.createElement("tr");
+              tr.className = "row-alerta-cuenta";
+              tr.innerHTML =
+                "<td>" +
+                (d.archivo || d.asunto || "correo") +
+                "</td><td>" +
+                (d.error || "No se pudo leer") +
+                "</td>";
+              erroresBody.appendChild(tr);
+            });
+          }
+        }
+        setExportLinks(data.registro_id);
+      }
+
+      function parseNdjsonStream(response, onEvent) {
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder("utf-8");
+        var buffer = "";
+        function pump() {
+          return reader.read().then(function (result) {
+            if (result.done) {
+              if (buffer.trim()) {
+                try { onEvent(JSON.parse(buffer)); } catch (e) {}
+              }
+              return;
+            }
+            buffer += decoder.decode(result.value, { stream: true });
+            var parts = buffer.split("\n");
+            buffer = parts.pop() || "";
+            parts.forEach(function (line) {
+              line = line.trim();
+              if (!line) return;
+              try { onEvent(JSON.parse(line)); } catch (e) {}
+            });
+            return pump();
+          });
+        }
+        return pump();
+      }
+
+      if (btnEjecutar) {
+        btnEjecutar.addEventListener("click", function () {
+          var desde = (desdeInput && desdeInput.value) || "";
+          var hasta = (hastaInput && hastaInput.value) || "";
+          var horaDesde = (horaInput && horaInput.value) || "00:00";
+          if (!desde || !hasta) {
+            setStatus("Indica las fechas Desde y Hasta.", false);
+            return;
+          }
+          btnEjecutar.disabled = true;
+          if (resultados) resultados.hidden = true;
+          setStatus("Ejecutando…", null);
+          hideProgress();
+          if (progressEl) progressEl.hidden = false;
+          if (progressText) progressText.textContent = "Conectando…";
+
+          var url =
+            ejecutarUrl +
+            "?desde=" + encodeURIComponent(desde) +
+            "&hasta=" + encodeURIComponent(hasta) +
+            "&hora_desde=" + encodeURIComponent(horaDesde) +
+            "&stream=1";
+          if (defaultImapId) url += "&imap_id=" + encodeURIComponent(defaultImapId);
+
+          fetch(url, { credentials: "same-origin" })
+            .then(function (r) {
+              if (!r.ok) {
+                return r.json().then(function (j) {
+                  throw new Error((j && j.error) || "Error al ejecutar.");
+                });
+              }
+              return parseNdjsonStream(r, function (ev) {
+                if (!ev) return;
+                if (ev.type === "status") {
+                  setStatus(ev.message || "Procesando…", null);
+                  if (progressText) progressText.textContent = ev.message || "";
+                } else if (ev.type === "pdf_progress") {
+                  showProgress(ev);
+                } else if (ev.type === "done") {
+                  hideProgress();
+                  renderResult(ev.payload || {});
+                  loadRegistros(1);
+                } else if (ev.type === "error") {
+                  hideProgress();
+                  setStatus(ev.error || "Error al ejecutar.", false);
+                }
+              });
+            })
+            .catch(function (err) {
+              hideProgress();
+              setStatus((err && err.message) || "Error de red.", false);
+            })
+            .finally(function () {
+              btnEjecutar.disabled = !defaultImapId;
+            });
+        });
+      }
+
+      function registroExportUrl(id, formato) {
+        return registroExportBase
+          .replace("/0/", "/" + id + "/")
+          .replace("FORMATO", formato);
+      }
+
+      var btnEliminarTodos = document.getElementById("trailero-eliminar-todos");
+
+      function eliminarRegistro(id) {
+        if (!confirm("¿Eliminar este registro?")) return;
+        var url = registroEliminarBase.replace(/\/0$/, "/" + id);
+        fetch(url, {
+          method: "DELETE",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": csrfToken },
+        })
+          .then(function (r) {
+            return r.json().then(function (j) {
+              return { ok: r.ok, j: j };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok || !res.j.ok) {
+              alert((res.j && res.j.error) || "No se pudo eliminar.");
+              return;
+            }
+            loadRegistros(registrosState.page);
+          })
+          .catch(function () {
+            alert("No se pudo eliminar el registro.");
+          });
+      }
+
+      function eliminarTodosRegistros() {
+        if (!confirm("¿Eliminar todos los registros de trailero? Se borran de la base de datos.")) return;
+        if (btnEliminarTodos) btnEliminarTodos.disabled = true;
+        fetch(registrosUrl, {
+          method: "DELETE",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": csrfToken },
+        })
+          .then(function (r) {
+            return r.json().then(function (j) {
+              return { ok: r.ok, j: j };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok || !res.j.ok) {
+              alert((res.j && res.j.error) || "No se pudieron eliminar los registros.");
+              if (btnEliminarTodos) btnEliminarTodos.disabled = false;
+              return;
+            }
+            loadRegistros(1);
+          })
+          .catch(function () {
+            alert("No se pudieron eliminar los registros.");
+            if (btnEliminarTodos) btnEliminarTodos.disabled = false;
+          });
+      }
+
+      if (btnEliminarTodos) {
+        btnEliminarTodos.addEventListener("click", eliminarTodosRegistros);
+      }
+
+      function syncRegistrosPager() {
+        if (!registrosPager) return;
+        var show = registrosState.total > 0 && registrosState.perPage !== "todos";
+        registrosPager.hidden = !show;
+        if (registrosPagerInfo) {
+          registrosPagerInfo.textContent =
+            registrosState.page +
+            " / " +
+            registrosState.totalPages +
+            " · " +
+            registrosState.total +
+            " registro(s)";
+        }
+        if (registrosPrev) registrosPrev.disabled = registrosState.page <= 1;
+        if (registrosNext) {
+          registrosNext.disabled = registrosState.page >= registrosState.totalPages;
+        }
+      }
+
+      function loadRegistros(page) {
+        if (!registrosList) return;
+        if (typeof page === "number" && page > 0) registrosState.page = page;
+        if (registrosPerPage) registrosState.perPage = registrosPerPage.value || "10";
+
+        var url =
+          registrosUrl +
+          "?page=" + encodeURIComponent(registrosState.page) +
+          "&per_page=" + encodeURIComponent(registrosState.perPage);
+
+        fetch(url, { credentials: "same-origin" })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            registrosList.innerHTML = "";
+            var rows = (j && j.registros) || [];
+            registrosState.page = j.pagina || 1;
+            registrosState.totalPages = j.total_paginas || 1;
+            registrosState.total = j.total || 0;
+            registrosState.perPage = j.per_page || registrosState.perPage;
+
+            if (registrosVacio) {
+              registrosVacio.hidden = registrosState.total > 0;
+            }
+            if (btnEliminarTodos) btnEliminarTodos.disabled = registrosState.total === 0;
+
+            rows.forEach(function (r) {
+              var li = document.createElement("li");
+              li.className = "registro-item";
+              var hora = r.hora_desde || "00:00";
+              var n = r.tanqueos_total || 0;
+              var title =
+                "Desde " +
+                hora +
+                " · " +
+                formatFechaSlash(r.desde) +
+                " → " +
+                formatFechaSlash(r.hasta) +
+                " · " +
+                n +
+                " tanqueo(s) · " +
+                money(r.total_general);
+              var sub =
+                (r.imap_usuario || "") +
+                (r.pdfs_error ? " · " + r.pdfs_error + " error(es)" : "") +
+                " · " +
+                (r.created_at || "") +
+                (r.usuario ? " · " + r.usuario : "");
+              li.innerHTML =
+                '<div class="registro-main">' +
+                "<strong>" + title + "</strong>" +
+                "<span class=\"registro-sub\">" + sub + "</span>" +
+                "</div>" +
+                '<div class="registro-actions">' +
+                (r.tiene_export
+                  ? '<button type="button" class="btn ghost btn-sm btn-abrir-descargar" title="Descargar" aria-label="Descargar">Descargar</button>'
+                  : "") +
+                '<button type="button" class="btn-icon btn-delete" title="Eliminar" aria-label="Eliminar">' +
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3.5-8h1v7h-1zm3 0h1v7h-1zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+                "</button>" +
+                "</div>";
+              var btnDl = li.querySelector(".btn-abrir-descargar");
+              if (btnDl) {
+                btnDl.addEventListener("click", function () {
+                  openDescargarModal(r);
+                });
+              }
+              var btnDel = li.querySelector(".btn-delete");
+              if (btnDel) {
+                btnDel.addEventListener("click", function () {
+                  eliminarRegistro(r.id);
+                });
+              }
+              registrosList.appendChild(li);
+            });
+            syncRegistrosPager();
+          })
+          .catch(function () {
+            if (registrosVacio) {
+              registrosVacio.hidden = false;
+              registrosVacio.textContent = "No se pudieron cargar los registros.";
+            }
+          });
+      }
+
+      if (registrosPrev) {
+        registrosPrev.addEventListener("click", function () {
+          if (registrosState.page > 1) loadRegistros(registrosState.page - 1);
+        });
+      }
+      if (registrosNext) {
+        registrosNext.addEventListener("click", function () {
+          if (registrosState.page < registrosState.totalPages) {
+            loadRegistros(registrosState.page + 1);
+          }
+        });
+      }
+      if (registrosPerPage) {
+        registrosPerPage.addEventListener("change", function () {
+          loadRegistros(1);
+        });
+      }
+
+      loadRegistros(1);
+    })();
+  </script>
+</body>
+</html>

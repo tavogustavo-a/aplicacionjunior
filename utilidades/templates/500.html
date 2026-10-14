@@ -1,0 +1,13 @@
+{% extends "error_base.html" %}
+
+{% block title %}Error del servidor{% endblock %}
+
+{% block content %}
+  <div class="err-code">500</div>
+  <div class="err-icon" aria-hidden="true">!</div>
+  <h1>Algo falló en el servidor</h1>
+  <p>Ocurrió un error interno. Intenta de nuevo. Si se repite, reinicia <code>python app.py</code>.</p>
+  <div class="err-actions">
+    <a class="err-btn" href="{{ home_url }}">Ir al inicio</a>
+  </div>
+{% endblock %}

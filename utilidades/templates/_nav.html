@@ -1,0 +1,33 @@
+<header class="hero hero-row">
+  <nav class="nav-menu" aria-label="Principal">
+    <details class="nav-menu-details">
+      <summary class="nav-menu-btn">
+        <span class="nav-menu-bars" aria-hidden="true"></span>
+        Menú
+      </summary>
+      <div class="nav-menu-panel">
+        <a
+          class="nav-menu-item{% if request.endpoint == 'index' %} is-active{% endif %}"
+          href="{{ url_for('index') }}"
+        >Ventas</a>
+        <a
+          class="nav-menu-item{% if request.endpoint == 'servicio_trailero' %} is-active{% endif %}"
+          href="{{ url_for('servicio_trailero') }}"
+        >Servicio Trailero</a>
+        {% if is_admin %}
+        <a
+          class="nav-menu-item{% if request.endpoint == 'usuarios' %} is-active{% endif %}"
+          href="{{ url_for('usuarios') }}"
+        >Usuarios</a>
+        {% endif %}
+        <form method="post" action="{{ url_for('logout') }}" class="nav-menu-form">
+          {% include "_csrf.html" %}
+          <button type="submit" class="nav-menu-item nav-menu-exit">
+            {% if usuario %}Salir ({{ usuario }}){% else %}Salir{% endif %}
+          </button>
+        </form>
+      </div>
+    </details>
+  </nav>
+  <p class="brand">aplicacionjunior</p>
+</header>

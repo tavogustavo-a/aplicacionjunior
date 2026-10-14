@@ -1,0 +1,161 @@
+## Forma fácil: entra como junior, sube instalar.sh y .env a /home/junior
+## y ejecuta:  bash instalar.sh
+## Antes, una sola vez como root: adduser junior && usermod -aG sudo junior
+## Y el código tiene que estar ya en GitHub (git subir y actualizar.txt).
+##
+## Usuario del sistema y del panel: junior
+## Dirección pública: https://junior.tuyaho.com
+## Este proyecto no usa backups ni configuración de Gmail.
+## La base es SQLite (instance/panel.db). No hace falta PostgreSQL.
+## tuyaho.com ya está ocupado. No edites su nginx ni su certificado.
+## Se agrega un sitio aparte, solo para junior.tuyaho.com.
+``````````````````````````````````````````````````````````
+## 0. Namecheap (hazlo antes que el servidor)
+## El dominio principal NO incluye los subdominios.
+## junior.tuyaho.com hoy no existe. Hay que crear el registro.
+##
+## Namecheap → Domain List → tuyaho.com → Manage → Advanced DNS
+## Add New Record:
+##   Type:  A Record
+##   Host:  junior
+##   Value: 173.212.218.51
+##   TTL:   Automatic
+##
+## No uses URL Redirect. No borres el registro de tuyaho.com.
+## Espera unos minutos y, en el PC, comprueba:
+nslookup junior.tuyaho.com
+## Tiene que responder 173.212.218.51. Si no, no sigas al certificado.
+``````````````````````````````````````````````````````````
+## 0. Usuario root → crear usuario junior
+``````````````````````````````````````````````````````````
+adduser junior
+usermod -aG sudo junior
+usermod -aG junior www-data
+``````````````````````````````````````````````````````````
+## 1. Paquetes
+## En el servidor de tuyaho, nginx, git, certbot, ufw y fail2ban ya están.
+## No los vuelvas a configurar y no reinstales el sitio del otro proyecto.
+sudo apt-get update
+sudo apt-get install -y python3 python3-venv python3-dev build-essential
+sudo apt-get install -y libffi-dev libxml2-dev libxslt1-dev zlib1g-dev
+``````````````````````````````````````````````````````````
+## 2. Clonar proyecto y entorno virtual
+## Cambia la URL del repo si usas otra.
+## En GitHub el repo debe existir vacío: tavogustavo-a/aplicacionjunior
+su - junior
+git clone https://github.com/tavogustavo-a/aplicacionjunior.git
+cd aplicacionjunior
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+grep -v -i "^pywebview" utilidades/requirements.txt > /tmp/req-junior.txt
+pip install -r /tmp/req-junior.txt
+pip install gunicorn
+deactivate
+exit
+``````````````````````````````````````````````````````````
+## 3. Configurar .env en la raíz del proyecto (al lado de utilidades, no dentro)
+## El primer usuario del panel sale de PANEL_USER. Aquí es junior.
+## EFFI_USER, EFFI_PASSWORD y EFFI_SESSION se llenan después, dentro de la app.
+su - junior
+nano /home/junior/aplicacionjunior/.env
+exit
+``````````````````````````````````````````````````````````
+PANEL_USER=junior
+PANEL_PASSWORD=CAMBIA_ESTA_CLAVE
+SECRET_KEY=PEGA_AQUI_UNA_CLAVE_LARGA
+EFFI_BASE_URL=https://effi.com.co
+EFFI_SESSION=
+EFFI_USER=
+EFFI_PASSWORD=
+``````````````````````````````````````````````````````````
+## Clave larga para SECRET_KEY (cópiala al .env):
+su - junior
+python3 -c "import secrets; print(secrets.token_hex(32))"
+exit
+``````````````````````````````````````````````````````````
+sudo chmod 600 /home/junior/aplicacionjunior/.env
+sudo chown junior:junior /home/junior/aplicacionjunior/.env
+``````````````````````````````````````````````````````````
+## 4. Carpeta de la base
+## Las tablas se crean solas al arrancar. No subas panel.db del PC.
+mkdir -p /home/junior/aplicacionjunior/instance
+sudo chown -R junior:junior /home/junior/aplicacionjunior/instance
+sudo chmod 700 /home/junior/aplicacionjunior/instance
+``````````````````````````````````````````````````````````
+## 5. Servicio systemd
+## Puerto 8001 a propósito: el 8000 ya lo usa el otro sitio de tuyaho.com.
+## Un solo worker: la base SQLite no se comparte entre varios procesos.
+## El código está en utilidades/; gunicorn se arranca desde ahí.
+sudo tee /etc/systemd/system/aplicacionjunior.service > /dev/null <<EOF
+[Unit]
+Description=aplicacionjunior
+After=network.target
+
+[Service]
+User=junior
+Group=junior
+WorkingDirectory=/home/junior/aplicacionjunior/utilidades
+Environment="PATH=/home/junior/aplicacionjunior/venv/bin"
+Environment="BEHIND_PROXY=1"
+ExecStart=/home/junior/aplicacionjunior/venv/bin/gunicorn --workers 1 --bind 127.0.0.1:8001 --timeout 3600 --forwarded-allow-ips=127.0.0.1 app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+``````````````````````````````````````````````````````````
+sudo systemctl daemon-reload
+sudo systemctl start aplicacionjunior
+sudo systemctl enable aplicacionjunior
+sudo systemctl status aplicacionjunior
+``````````````````````````````````````````````````````````
+## 6. Permisos del home para que nginx pueda llegar después, sin leer el .env
+chmod 711 /home/junior
+sudo usermod -aG junior www-data
+``````````````````````````````````````````````````````````
+## 7. Comprobar que la app responde dentro del servidor
+curl -I http://127.0.0.1:8001/login
+``````````````````````````````````````````````````````````
+## 8. Nginx solo para junior.tuyaho.com
+## Archivo nuevo. No abras pagina-monetizar.conf.
+sudo tee /etc/nginx/sites-available/aplicacionjunior.conf > /dev/null <<'EOF'
+server {
+    listen 80;
+    server_name junior.tuyaho.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+    }
+}
+EOF
+sudo ln -sf /etc/nginx/sites-available/aplicacionjunior.conf /etc/nginx/sites-enabled/aplicacionjunior.conf
+sudo nginx -t
+sudo systemctl reload nginx
+``````````````````````````````````````````````````````````
+## 9. Certificado solo de este subdominio
+## No pongas tuyaho.com en este comando.
+sudo certbot --nginx -d junior.tuyaho.com --email admin@tuyaho.com --agree-tos --no-eff-email -n --redirect
+sudo nginx -t
+sudo systemctl reload nginx
+``````````````````````````````````````````````````````````
+## 10. Abrir en el navegador
+## https://junior.tuyaho.com
+## Usuario: junior
+## Contraseña: la que pusiste en PANEL_PASSWORD
+``````````````````````````````````````````````````````````
+## 11. Actualización
+cd /home/junior/aplicacionjunior
+source venv/bin/activate
+git pull origin main
+sudo systemctl restart aplicacionjunior

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Usuarios · aplicacionjunior</title>
+  {% include "_icons.html" %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;550;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  {% include "_sw.html" %}
+</head>
+<body>
+  <div class="bg"></div>
+  <main class="shell">
+    {% include "_nav.html" %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Crear usuario</h2>
+      </div>
+      <form method="post" action="{{ url_for('usuarios_crear') }}" class="stack">
+        {% include "_csrf.html" %}
+        <label>
+          Usuario
+          <input type="text" name="username" required autocomplete="off" maxlength="80" />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" required autocomplete="new-password" maxlength="200" />
+        </label>
+        <div class="actions">
+          <button type="submit" class="btn primary">Crear usuario</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Usuarios en base de datos</h2>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuario</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr class="{% if not u.enabled %}row-off{% endif %}">
+              <td>{{ u.id }}</td>
+              <td>
+                {{ u.username }}
+                {% if u.id == user_id %}<span class="badge-you">tú</span>{% endif %}
+              </td>
+              <td>
+                {% if u.enabled %}
+                  <span class="pill on">ON</span>
+                {% else %}
+                  <span class="pill off">OFF</span>
+                {% endif %}
+              </td>
+              <td class="actions-cell">
+                <button
+                  type="button"
+                  class="btn ghost btn-sm btn-edit-user"
+                  data-id="{{ u.id }}"
+                  data-username="{{ u.username }}"
+                  data-is-admin="{{ 1 if u.username == admin_name else 0 }}"
+                  data-action="{{ url_for('usuarios_editar', uid=u.id) }}"
+                >
+                  Editar
+                </button>
+                {% if u.username != admin_name %}
+                <form method="post" action="{{ url_for('usuarios_toggle', uid=u.id) }}">
+                  {% include "_csrf.html" %}
+                  <button type="submit" class="btn ghost btn-sm">
+                    {% if u.enabled %}Apagar{% else %}Encender{% endif %}
+                  </button>
+                </form>
+                <form method="post" action="{{ url_for('usuarios_eliminar', uid=u.id) }}"
+                      onsubmit="return confirm('¿Eliminar usuario {{ u.username }}?');">
+                  {% include "_csrf.html" %}
+                  <button type="submit" class="btn danger btn-sm">Eliminar</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="editUserModal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+      <div class="panel-head">
+        <h2 id="editUserTitle">Editar usuario</h2>
+        <button type="button" class="btn ghost btn-sm" id="editUserClose">Cerrar</button>
+      </div>
+
+      <form method="post" class="stack" id="editUserForm">
+        {% include "_csrf.html" %}
+        <label>
+          Usuario
+          <input type="text" name="username" id="editUsername" maxlength="80" required />
+        </label>
+
+        <div id="adminPasswordBlock" class="stack admin-pass-block" hidden>
+          <label>
+            Contraseña actual
+            <input type="password" name="password_actual" id="editPasswordActual" maxlength="200" autocomplete="current-password" />
+          </label>
+          <label>
+            Contraseña nueva
+            <input type="password" name="password" id="editPasswordNueva" maxlength="200" autocomplete="new-password" placeholder="Dejar vacío para no cambiar" />
+          </label>
+          <p class="hint">Si cambias la contraseña del admin, debes escribir la actual y luego la nueva.</p>
+        </div>
+
+        <div id="normalPasswordBlock" class="stack">
+          <label>
+            Nueva contraseña
+            <input type="password" name="password_normal" id="editPasswordNormal" maxlength="200" autocomplete="new-password" placeholder="Dejar vacío para no cambiar" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Guardar cambios</button>
+          <button type="button" class="btn ghost" id="editUserCancel">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var modal = document.getElementById("editUserModal");
+      var form = document.getElementById("editUserForm");
+      var usernameInput = document.getElementById("editUsername");
+      var adminBlock = document.getElementById("adminPasswordBlock");
+      var normalBlock = document.getElementById("normalPasswordBlock");
+      var passActual = document.getElementById("editPasswordActual");
+      var passNueva = document.getElementById("editPasswordNueva");
+      var passNormal = document.getElementById("editPasswordNormal");
+      var closeBtn = document.getElementById("editUserClose");
+      var cancelBtn = document.getElementById("editUserCancel");
+      var isAdminTarget = false;
+
+      function openModal(btn) {
+        isAdminTarget = btn.getAttribute("data-is-admin") === "1";
+        form.action = btn.getAttribute("data-action");
+        usernameInput.value = btn.getAttribute("data-username") || "";
+        usernameInput.readOnly = isAdminTarget;
+        passActual.value = "";
+        passNueva.value = "";
+        passNormal.value = "";
+
+        if (isAdminTarget) {
+          adminBlock.hidden = false;
+          normalBlock.hidden = true;
+          passNormal.disabled = true;
+          passNueva.disabled = false;
+          passActual.disabled = false;
+        } else {
+          adminBlock.hidden = true;
+          normalBlock.hidden = false;
+          passNormal.disabled = false;
+          passNueva.disabled = true;
+          passActual.disabled = true;
+        }
+
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+        usernameInput.focus();
+      }
+
+      function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove("modal-open");
+      }
+
+      document.querySelectorAll(".btn-edit-user").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          openModal(btn);
+        });
+      });
+
+      closeBtn.addEventListener("click", closeModal);
+      cancelBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", function (e) {
+        if (e.target === modal) closeModal();
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !modal.hidden) closeModal();
+      });
+
+      form.addEventListener("submit", function () {
+        // Unificar campo password enviado al servidor
+        if (isAdminTarget) {
+          passNormal.disabled = true;
+        } else {
+          passNueva.value = passNormal.value;
+          passNueva.disabled = false;
+          passActual.disabled = true;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

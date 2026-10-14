@@ -1,0 +1,30 @@
+########si no deja subir porque no se fia haz esto
+git config --global --add safe.directory "E:/proyectos/7. proyecto junior"
+######################################################
+### se usan por primera vez después ya no se usa
+## En GitHub crea antes el repo vacío: tavogustavo-a/aplicacionjunior (sin README).
+## En la carpeta del proyecto (PC):
+git init
+git status
+git add .
+git commit -m "se agrega el proyecto"
+git branch -M main
+git remote add origin https://github.com/tavogustavo-a/aplicacionjunior.git
+git push -u origin main
+--------------------------------------------------------
+--------------------------------------------------------
+### para volver a conectar el escritorio remoto
+git pull origin main
+### se sigue usando para subir nuevo repertorio o actualizarlo
+git status
+git add .
+git commit -m "1"
+git push origin main
+--------------------------------------------------------
+--------------------------------------------------------
+## Actualización en el servidor
+## No hay backups ni correo de Gmail: solo se actualiza el código y se reinicia.
+cd /home/junior/aplicacionjunior
+source venv/bin/activate
+git pull origin main
+sudo systemctl restart aplicacionjunior
